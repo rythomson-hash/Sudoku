@@ -1,290 +1,222 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>NYT-Style Sudoku Player</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NYT-Style Sudoku</title>
 <style>
-:root {
-  --cell-size: 60px;
-  --cell-border: #999;
-  --cell-bg: #fff;
-  --cell-highlight: #fffa91;
-  --cell-conflict: #ffb3b3;
-  --cell-clue: #000;
-  --cell-text: #111;
-  --cand-text: #555;
-  --cand-active: #111;
-  --cand-size: 18px;
-}
-body {
-  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-  background: #f9f9f9;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px;
-}
-h1 { margin-bottom: 20px; }
-#board {
-  display: grid;
-  grid-template-columns: repeat(9, var(--cell-size));
-  grid-template-rows: repeat(9, var(--cell-size));
-  gap: 0;
-  border: 2px solid #000;
-}
-.cell {
-  position: relative;
-  border: 1px solid var(--cell-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--cell-bg);
-  cursor: pointer;
-  font-size: 28px;
-  font-weight: bold;
-  user-select: none;
-  transition: background 0.15s;
-}
-.cell.box-right { border-right: 2px solid #000; }
-.cell.box-bottom { border-bottom: 2px solid #000; }
-.cell.match { background: var(--cell-highlight); }
-.cell.conflict { background: var(--cell-conflict); }
-.cell.clue input { color: var(--cell-clue); font-weight: bold; }
-.cell.pencil-mode input { color: var(--cell-text); }
-.cell input {
-  width: 100%;
-  height: 100%;
-  border: none;
-  text-align: center;
-  font-size: 28px;
-  background: transparent;
-  outline: none;
-  cursor: pointer;
-}
-.candidates {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: calc(100% - 4px);
-  height: calc(100% - 4px);
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(3, 1fr);
-  pointer-events: none;
-}
-.candidates span {
-  font-size: var(--cand-size);
-  color: var(--cand-text);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: auto;
-  user-select: none;
-  cursor: pointer;
-  transition: color 0.1s, font-weight 0.1s, opacity 0.2s;
-}
-.candidates span.active { font-weight: bold; color: var(--cand-active); opacity:1; }
-.candidates span.hidden { visibility: hidden; opacity:0; }
-.cell:hover { background: #fffde0; }
-
-.controls { margin-top: 20px; display:flex; gap:10px; flex-wrap:wrap; }
-.timeDisplay { font-weight:bold; min-width:50px; text-align:center; background:#eee; border-radius:5px; padding:2px 6px; }
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 100vh;
+    background: #f7f7f7;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    padding: 20px;
+  }
+  #sudoku-container {
+    display: grid;
+    grid-template-columns: repeat(9, 60px);
+    grid-template-rows: repeat(9, 60px);
+    border: 4px solid #333;
+    background: #333;
+  }
+  .cell {
+    background: #fff;
+    border: 1px solid #999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    font-size: 24px;
+    position: relative;
+    cursor: pointer;
+  }
+  /* Bold box borders like NYT */
+  .cell.border-bottom { border-bottom: 4px solid #333; }
+  .cell.border-right { border-right: 4px solid #333; }
+  .cell.fixed { color: #000; }
+  .cell.selected { background: #ffd; }
+  .cell.highlight { background: #d6f0ff; }
+  .candidates {
+    font-weight: normal;
+    font-size: 10px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    justify-items: center;
+    align-items: center;
+    position: absolute;
+    top: 2px; left: 2px; right: 2px; bottom: 2px;
+    color: #555;
+  }
+  #controls {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  button {
+    padding: 10px 15px;
+    font-size: 16px;
+    cursor: pointer;
+  }
 </style>
 </head>
 <body>
+
 <h1>NYT-Style Sudoku</h1>
-<div id="board" aria-label="Sudoku board"></div>
-<div class="controls">
-  <button id="togglePencil">Toggle Pencil Mode: OFF</button>
-  <button id="autoCands">Auto Candidates: ON</button>
-  <button id="hintBtn">Hint</button>
-  <button id="solveBtn">Solve</button>
-  <button id="checkBtn">Check</button>
-  <button id="clearBtn">Clear</button>
-  <span class="timeDisplay" id="timeDisplay">00:00</span>
-  <button id="timerStart">Start</button>
-  <button id="timerPause">Pause</button>
-  <button id="timerReset">Reset</button>
-  <span id="bestTime">Best: —</span>
+<div id="sudoku-container"></div>
+<div id="controls">
+  <button id="pencil-toggle">Pencil Mode: OFF</button>
+  <button id="clear-cell">Clear Cell</button>
+  <button id="reset-board">Reset Board</button>
 </div>
 
 <script>
-(() => {
-  const board = document.getElementById('board');
-  const togglePencilBtn = document.getElementById('togglePencil');
-  const autoCandsBtn = document.getElementById('autoCands');
-  const hintBtn = document.getElementById('hintBtn');
-  const solveBtn = document.getElementById('solveBtn');
-  const checkBtn = document.getElementById('checkBtn');
-  const clearBtn = document.getElementById('clearBtn');
-  const timeDisplay = document.getElementById('timeDisplay');
-  const timerStart = document.getElementById('timerStart');
-  const timerPause = document.getElementById('timerPause');
-  const timerReset = document.getElementById('timerReset');
-  const bestTimeLabel = document.getElementById('bestTime');
+const container = document.getElementById('sudoku-container');
+let pencilMode = false;
+let selectedCell = null;
 
-  let pencilMode = false;
-  let autoCandidates = true;
-  let selectedVal = null;
-  let cachedSolution = null;
-  let cells = [];
+// Sample puzzle (0 = empty)
+const puzzle = [
+  [5,3,0,0,7,0,0,0,0],
+  [6,0,0,1,9,5,0,0,0],
+  [0,9,8,0,0,0,0,6,0],
+  [8,0,0,0,6,0,0,0,3],
+  [4,0,0,8,0,3,0,0,1],
+  [7,0,0,0,2,0,0,0,6],
+  [0,6,0,0,0,0,2,8,0],
+  [0,0,0,4,1,9,0,0,5],
+  [0,0,0,0,8,0,0,7,9]
+];
 
-  // Timer
-  let timerInterval = null, elapsedMs = 0, timerRunning = false, timerStartTs = 0;
-  function formatTime(ms){ const s=Math.floor(ms/1000); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
-  function updateDisplay(){ timeDisplay.textContent=formatTime(elapsedMs); }
-  function startTimer(){ if(timerRunning) return; timerRunning=true; timerStartTs=Date.now(); timerInterval=setInterval(()=>{ elapsedMs+=Date.now()-timerStartTs; timerStartTs=Date.now(); updateDisplay(); },200); timerStart.textContent='Running'; }
-  function pauseTimer(){ if(!timerRunning) return; timerRunning=false; clearInterval(timerInterval); timerStart.textContent='Start'; }
-  function resetTimer(){ pauseTimer(); elapsedMs=0; updateDisplay(); }
+let board = [];
+function deepCopy(arr) { return arr.map(r => r.slice()); }
 
-  timerStart.addEventListener('click', startTimer);
-  timerPause.addEventListener('click', pauseTimer);
-  timerReset.addEventListener('click', resetTimer);
+function createBoard() {
+  container.innerHTML = '';
+  board = deepCopy(puzzle);
+  for(let row = 0; row < 9; row++){
+    for(let col = 0; col < 9; col++){
+      const cell = document.createElement('div');
+      cell.classList.add('cell');
+      if((row+1)%3===0 && row<8) cell.classList.add('border-bottom');
+      if((col+1)%3===0 && col<8) cell.classList.add('border-right');
+      cell.dataset.row = row;
+      cell.dataset.col = col;
+      container.appendChild(cell);
 
-  // --- Build board ---
-  for(let r=0;r<9;r++) for(let c=0;c<9;c++){
-    const div=document.createElement('div'); div.className='cell';
-    if((c+1)%3===0 && c!==8) div.classList.add('box-right');
-    if((r+1)%3===0 && r!==8) div.classList.add('box-bottom');
-    const inp=document.createElement('input'); inp.type='tel'; inp.maxLength=1;
-    const cand=document.createElement('div'); cand.className='candidates';
-    for(let v=1;v<=9;v++){
-      const span=document.createElement('span'); span.textContent=v; span.dataset.val=v; span.classList.add('hidden');
-      span.addEventListener('click', e=>{
-        e.stopPropagation();
-        if(pencilMode){ span.classList.toggle('active'); }
-        else { inp.value=span.dataset.val; refreshCandidates(); highlightMatches(); cachedSolution=null; checkConflicts(); checkSolved(); }
-      });
-      cand.appendChild(span);
+      if(board[row][col] !== 0){
+        cell.textContent = board[row][col];
+        cell.classList.add('fixed');
+      } else {
+        const candidates = document.createElement('div');
+        candidates.classList.add('candidates');
+        candidates.innerHTML = Array(9).fill('').map((_,i) => `<span>${i+1}</span>`).join('');
+        cell.appendChild(candidates);
+      }
+
+      cell.addEventListener('click', () => selectCell(cell));
     }
-    inp.addEventListener('input', ()=>{ inp.value=inp.value.replace(/[^1-9]/g,''); refreshCandidates(); highlightMatches(); cachedSolution=null; checkConflicts(); checkSolved(); });
-    div.appendChild(inp); div.appendChild(cand); board.appendChild(div);
-    cells.push({div,inp,cand,r,c});
   }
+  updateCandidates();
+}
 
-  // --- Pencil toggle ---
-  togglePencilBtn.addEventListener('click', ()=>{
-    pencilMode = !pencilMode;
-    togglePencilBtn.textContent='Toggle Pencil Mode: '+(pencilMode?'ON':'OFF');
-    cells.forEach(c=>c.div.classList.toggle('pencil-mode', pencilMode));
-  });
+function selectCell(cell){
+  if(selectedCell) selectedCell.classList.remove('selected');
+  selectedCell = cell;
+  cell.classList.add('selected');
+  highlightSameNumbers(cell.dataset.value);
+}
 
-  // --- Auto candidates toggle ---
-  autoCandsBtn.addEventListener('click', ()=>{
-    autoCandidates=!autoCandidates;
-    autoCandsBtn.textContent='Auto Candidates: '+(autoCandidates?'ON':'OFF');
-    refreshCandidates();
-  });
-
-  // --- Grid helpers ---
-  function getGrid(){ return cells.map(c=>parseInt(c.inp.value||0,10)); }
-  function grid2d(){ const g=Array.from({length:9},()=>Array(9).fill(0)); cells.forEach(c=>g[c.r][c.c]=parseInt(c.inp.value||0,10)); return g; }
-  function setGrid(grid, clues=false){
-    cells.forEach(c=>{
-      const v=grid[c.r][c.c]||'';
-      c.inp.value=v;
-      if(clues && v){ c.div.classList.add('clue'); c.inp.readOnly=true; } else { c.div.classList.remove('clue'); c.inp.readOnly=false; }
-    });
-    refreshCandidates(); checkConflicts();
-  }
-
-  // --- Validity ---
-  function isValid(g,r,c,val){
-    for(let i=0;i<9;i++){ if(g[r][i]===val || g[i][c]===val) return false; }
-    const br=Math.floor(r/3)*3, bc=Math.floor(c/3)*3;
-    for(let i=0;i<3;i++) for(let j=0;j<3;j++) if(g[br+i][bc+j]===val) return false;
-    return true;
-  }
-
-  // --- Candidates ---
-  function computeCandidatesForCell(g,r,c){ if(g[r][c]!==0) return []; const arr=[]; for(let v=1;v<=9;v++){ if(isValid(g,r,c,v)) arr.push(v); } return arr; }
-  function refreshCandidates(){
-    const g=grid2d();
-    cells.forEach(c=>{
-      const spans=c.cand.querySelectorAll('span');
-      const val=parseInt(c.inp.value||0,10);
-      if(val){ spans.forEach(s=>s.classList.add('hidden')); return; }
-      const possible=computeCandidatesForCell(g,c.r,c.c);
-      spans.forEach(s=>{
-        const v=parseInt(s.dataset.val,10);
-        if(possible.includes(v)){ s.classList.remove('hidden'); if(!pencilMode) s.classList.remove('active'); } 
-        else { s.classList.remove('active'); s.classList.add('hidden'); }
-      });
-    });
-  }
-
-  // --- Highlight matches ---
-  function highlightMatches(){
-    cells.forEach(c=>c.div.classList.remove('match'));
-    if(selectedVal) cells.forEach(c=>{ if(c.inp.value===selectedVal) c.div.classList.add('match'); });
-  }
-  board.addEventListener('click', e=>{
-    const span=e.target.closest('span');
-    if(span && !pencilMode){
-      const val=span.dataset.val;
-      selectedVal=(selectedVal===val?null:val);
-      highlightMatches();
+function highlightSameNumbers(value){
+  document.querySelectorAll('.cell').forEach(c => c.classList.remove('highlight'));
+  if(!value) return;
+  document.querySelectorAll('.cell').forEach(c => {
+    if(c.dataset.value === value){
+      c.classList.add('highlight');
     }
   });
+}
 
-  // --- Solver ---
-  function findEmpty(g){ for(let r=0;r<9;r++) for(let c=0;c<9;c++) if(g[r][c]===0) return [r,c]; return null; }
-  function solveGrid(g){ const empty=findEmpty(g); if(!empty) return true; const [r,c]=empty; for(let v=1;v<=9;v++){ if(isValid(g,r,c,v)){ g[r][c]=v; if(solveGrid(g)) return true; g[r][c]=0; } } return false; }
-  solveBtn.addEventListener('click', ()=>{
-    const g=grid2d();
-    if(solveGrid(g)) setGrid(g);
-    else alert('No solution found');
-  });
-
-  // --- Hint ---
-  hintBtn.addEventListener('click', ()=>{
-    if(!cachedSolution){ const g=grid2d(); cachedSolution=JSON.parse(JSON.stringify(g)); if(!solveGrid(cachedSolution)){ alert('No solution'); cachedSolution=null; return; } }
-    const g=grid2d();
-    outer: for(let r=0;r<9;r++) for(let c=0;c<9;c++) if(g[r][c]===0){ cells[r*9+c].inp.value=cachedSolution[r][c]; refreshCandidates(); checkConflicts(); checkSolved(); break outer; }
-  });
-
-  // --- Check ---
-  function checkConflicts(){
-    const g=grid2d();
-    cells.forEach(c=>c.div.classList.remove('conflict'));
-    for(let r=0;r<9;r++){
-      for(let c=0;c<9;c++){
-        const val=g[r][c]; if(!val) continue;
-        for(let i=0;i<9;i++){ if(i!==c && g[r][i]===val) cells[r*9+c].div.classList.add('conflict'); if(i!==r && g[i][c]===val) cells[r*9+c].div.classList.add('conflict'); }
-        const br=Math.floor(r/3)*3, bc=Math.floor(c/3)*3;
-        for(let i=0;i<3;i++) for(let j=0;j<3;j++){ const rr=br+i, cc=bc+j; if(rr===r && cc===c) continue; if(g[rr][cc]===val) cells[r*9+c].div.classList.add('conflict'); }
+function updateCandidates(){
+  for(let row=0; row<9; row++){
+    for(let col=0; col<9; col++){
+      const cell = container.children[row*9+col];
+      if(board[row][col]!==0) {
+        cell.dataset.value = board[row][col];
+        cell.textContent = board[row][col];
+        cell.classList.add('fixed');
+        if(cell.querySelector('.candidates')) cell.querySelector('.candidates').style.display='none';
+      } else {
+        const candidateDiv = cell.querySelector('.candidates');
+        candidateDiv.style.display='grid';
+        const taken = new Set();
+        for(let i=0;i<9;i++){
+          if(board[row][i]) taken.add(board[row][i]);
+          if(board[i][col]) taken.add(board[i][col]);
+        }
+        const startRow = Math.floor(row/3)*3;
+        const startCol = Math.floor(col/3)*3;
+        for(let r=startRow;r<startRow+3;r++){
+          for(let c=startCol;c<startCol+3;c++){
+            if(board[r][c]) taken.add(board[r][c]);
+          }
+        }
+        candidateDiv.querySelectorAll('span').forEach((s,i)=>{
+          s.textContent = taken.has(i+1) ? '' : i+1;
+        });
+        cell.dataset.value = '';
+        cell.textContent = '';
       }
     }
   }
-  checkBtn.addEventListener('click', checkConflicts);
+}
 
-  // --- Solved check ---
-  function checkSolved(){
-    const g=grid2d();
-    for(let r=0;r<9;r++) for(let c=0;c<9;c++) if(g[r][c]===0) return;
-    pauseTimer();
-    const best=localStorage.getItem('sudokuBestTime');
-    if(!best || elapsedMs<parseInt(best,10)){ localStorage.setItem('sudokuBestTime',elapsedMs); bestTimeLabel.textContent='Best: '+formatTime(elapsedMs); alert('Puzzle solved! New best time!'); }
-    else alert('Puzzle solved!');
+document.addEventListener('keydown', (e) => {
+  if(!selectedCell || selectedCell.classList.contains('fixed')) return;
+  const row = +selectedCell.dataset.row;
+  const col = +selectedCell.dataset.col;
+
+  if(e.key >= '1' && e.key <= '9'){
+    if(pencilMode){
+      const candidateDiv = selectedCell.querySelector('.candidates');
+      const span = candidateDiv.children[+e.key-1];
+      span.textContent = span.textContent === e.key ? '' : e.key;
+    } else {
+      board[row][col] = +e.key;
+      updateCandidates();
+      highlightSameNumbers(e.key);
+    }
   }
+  if(e.key === 'Backspace' || e.key === 'Delete'){
+    board[row][col] = 0;
+    updateCandidates();
+  }
+});
 
-  // --- Clear ---
-  clearBtn.addEventListener('click', ()=>{
-    cells.forEach(c=>{ c.inp.value=''; c.cand.querySelectorAll('span').forEach(s=>s.classList.remove('active','hidden')); c.div.classList.remove('conflict'); });
-    cachedSolution=null; selectedVal=null; highlightMatches(); refreshCandidates(); resetTimer();
-  });
+document.getElementById('pencil-toggle').addEventListener('click', () => {
+  pencilMode = !pencilMode;
+  document.getElementById('pencil-toggle').textContent = `Pencil Mode: ${pencilMode?'ON':'OFF'}`;
+});
 
-  // --- Load best ---
-  const bestStored = localStorage.getItem('sudokuBestTime');
-  if(bestStored) bestTimeLabel.textContent='Best: '+formatTime(parseInt(bestStored,10));
+document.getElementById('clear-cell').addEventListener('click', () => {
+  if(selectedCell && !selectedCell.classList.contains('fixed')){
+    const row = +selectedCell.dataset.row;
+    const col = +selectedCell.dataset.col;
+    board[row][col] = 0;
+    updateCandidates();
+  }
+});
 
-  // --- Auto-refresh candidates dynamically ---
-  setInterval(()=>{
-    if(autoCandidates) refreshCandidates();
-  },200);
+document.getElementById('reset-board').addEventListener('click', () => {
+  createBoard();
+});
 
-})();
+createBoard();
 </script>
+
 </body>
 </html>
