@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Sudoku + Photo — Final</title>
+<title>Sudoku + Photo — Final (Local)</title>
 <meta name="theme-color" content="#0b1220"/>
 <style>
   :root{ --bg:#f6f8fb; --card:#fff; --muted:#6b7280; --accent:#0b84ff; --cell-border:#d1d5db; --thick:#111827; --match:#fffbcc; }
@@ -52,7 +52,7 @@
 <body data-theme="light">
 <canvas id="confettiCanvas"></canvas>
 
-<!-- NEW: Pascal-inspired chameleon SVG (original artwork; dances on .show) -->
+<!-- Pascal-inspired chameleon SVG (original artwork; dances on .show) -->
 <div id="chameleon" aria-hidden="true" title="chameleon">
   <svg width="200" height="150" viewBox="0 0 200 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="chameleon">
     <defs>
@@ -97,7 +97,6 @@
         <button id="parseBtn" class="btn">Load</button>
         <button id="exportBtn" class="btn ghost">Export</button>
         <button id="clearBtn" class="btn ghost">Clear</button>
-        <button id="permanentBtn" class="btn" title="Generate a single-file HTML with the chosen photo embedded">Generate permanent page</button>
       </div>
     </div>
 
@@ -154,7 +153,6 @@
   const pencilToggle = document.getElementById('pencilToggle');
   const autoCandsBtn = document.getElementById('autoCands');
   const themeToggle = document.getElementById('themeToggle');
-  const permanentBtn = document.getElementById('permanentBtn');
 
   const choosePhoto = document.getElementById('choosePhoto');
   const photoInput = document.getElementById('photoInput');
@@ -255,16 +253,34 @@
   }
 
   /* --- Validation & solver --- */
-  function isValid(g,r,c,val){ for(let i=0;i<9;i++){ if(g[r][i]===val) return false; if(g[i][c]===val) return false; } const br=Math.floor(r/3)*3, bc=Math.floor(c/3)*3; for(let i=0;i<3;i++) for(let j=0;j<3;j++) if(g[br+i][bc+j]===val) return false; return true; }
-  function computeCandidatesForCell(g,r,c){ if(g[r][c] !== 0) return []; const arr=[]; for(let v=1; v<=9; v++) if(isValid(g,r,c,v)) arr.push(v); return arr; }
+  function isValid(g,r,c,val){
+    for(let i=0;i<9;i++){ if(g[r][i]===val) return false; if(g[i][c]===val) return false; }
+    const br=Math.floor(r/3)*3, bc=Math.floor(c/3)*3;
+    for(let i=0;i<3;i++) for(let j=0;j<3;j++) if(g[br+i][bc+j]===val) return false;
+    return true;
+  }
+  function computeCandidatesForCell(g,r,c){
+    if(g[r][c] !== 0) return [];
+    const arr=[]; for(let v=1;v<=9;v++) if(isValid(g,r,c,v)) arr.push(v); return arr;
+  }
   function findEmpty(g){ for(let r=0;r<9;r++) for(let c=0;c<9;c++) if(g[r][c]===0) return [r,c]; return null; }
   function solveGrid(g){ const e=findEmpty(g); if(!e) return true; const [r,c]=e; for(let v=1;v<=9;v++){ if(isValid(g,r,c,v)){ g[r][c]=v; if(solveGrid(g)) return true; g[r][c]=0; } } return false; }
   function computeSolution(){ const g=grid2d().map(r=>r.slice()); if(!solveGrid(g)) return null; return g; }
 
   /* --- Conflicts --- */
-  function checkConflicts(){ const g=grid2d(); let ok=true; cells.forEach(c=>c.div.classList.remove('conflict')); for(let r=0;r<9;r++) for(let c=0;c<9;c++){ const v=g[r][c]; if(!v) continue; g[r][c]=0; if(!isValid(g,r,c,v)){ cells[r*9+c].div.classList.add('conflict'); ok=false; } g[r][c]=v; } return ok; }
+  function checkConflicts(){
+    const g=grid2d(); let ok=true;
+    cells.forEach(c=>c.div.classList.remove('conflict'));
+    for(let r=0;r<9;r++) for(let c=0;c<9;c++){
+      const v=g[r][c]; if(!v) continue;
+      g[r][c]=0;
+      if(!isValid(g,r,c,v)){ cells[r*9+c].div.classList.add('conflict'); ok=false; }
+      g[r][c]=v;
+    }
+    return ok;
+  }
 
-  /* --- Candidates display & pencil notes --- */
+  /* --- Candidates display & pencil notes (only show possible candidates) --- */
   function refreshCandidatesForCell(cell){
     const spans = Array.from(cell.cand.querySelectorAll('span'));
     const g = grid2d();
@@ -286,12 +302,12 @@
         else { s.classList.add('hidden'); s.classList.remove('active'); }
       });
     } else {
-      spans.forEach(s=>{ s.classList.add('hidden'); s.classList.remove('active'); });
+      spans.forEach(s=> { s.classList.add('hidden'); s.classList.remove('active'); });
     }
   }
   function refreshAll(){ cells.forEach(c=>refreshCandidatesForCell(c)); checkConflicts(); }
 
-  /* --- Highlighting --- */
+  /* --- Highlighting (permanent until toggled) --- */
   function highlightMatches(val){
     currentlyHighlightedVal = val;
     cells.forEach(c=> c.div.classList.remove('match'));
@@ -343,7 +359,7 @@
     step();
   }
 
-  /* --- Show chameleon --- */
+  /* --- Chameleon (show/hide) --- */
   function showChameleon(){ chameleon.classList.add('show'); setTimeout(()=> chameleon.classList.remove('show'), 3800); }
 
   /* --- UI actions --- */
@@ -383,7 +399,7 @@
   autoCandsBtn.addEventListener('click', ()=>{ autoCandidates = !autoCandidates; autoCandsBtn.textContent = 'Auto Candidates: ' + (autoCandidates ? 'ON' : 'OFF'); refreshAll(); });
   themeToggle.addEventListener('click', ()=>{ const cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'; document.documentElement.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark'); });
 
-  /* --- Photo persistence & upload --- */
+  /* --- Photo persistence & upload (LOCAL only) --- */
   const PHOTO_KEY = 'sudoku_photo_dataurl';
   const saved = localStorage.getItem(PHOTO_KEY);
   if(saved){ photoPreview.src = saved; } else {
@@ -407,22 +423,6 @@
   photoPanel.addEventListener('dragover', (e)=>{ e.preventDefault(); photoPanel.style.opacity=0.95; });
   photoPanel.addEventListener('dragleave', ()=>{ photoPanel.style.opacity=1; });
   photoPanel.addEventListener('drop', (e)=>{ e.preventDefault(); photoPanel.style.opacity=1; const f = e.dataTransfer.files && e.dataTransfer.files[0]; if(!f) return; const rdr=new FileReader(); rdr.onload=(ev)=>{ photoPreview.src=ev.target.result; try{ localStorage.setItem(PHOTO_KEY, ev.target.result); }catch{} }; rdr.readAsDataURL(f); });
-
-  /* --- Generate permanent single-file HTML with embedded photo --- */
-  permanentBtn.addEventListener('click', ()=>{
-    const src = photoPreview.src || '';
-    if(!src.startsWith('data:')) return alert('Please choose a photo first (so it can be embedded).');
-    const cloneDoc = document.documentElement.cloneNode(true);
-    const img = cloneDoc.querySelector('#photoPreview');
-    if(img) img.setAttribute('src', src);
-    const permBtnClone = cloneDoc.querySelector('#permanentBtn');
-    if(permBtnClone) permBtnClone.parentNode && permBtnClone.parentNode.removeChild(permBtnClone);
-    const html = '<!doctype html>\n' + cloneDoc.outerHTML;
-    const blob = new Blob([html], {type:'text/html'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'sudoku_with_photo.html'; a.click(); setTimeout(()=> URL.revokeObjectURL(url), 2000);
-    alert('Downloaded a self-contained HTML file. Host or share that file and anyone who opens it will see the embedded photo.');
-  });
 
   /* --- Final init --- */
   cells.forEach(c => { if(!c.candidatesSet) c.candidatesSet = new Set(); });
