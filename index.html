@@ -1,114 +1,259 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>NYT-style Sudoku — Fixed Pencil & Highlights</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Sudoku + Photo — Mobile Friendly</title>
+<meta name="theme-color" content="#0b1220"/>
 <style>
-:root{
-  --bg:#f6f8fb; --card:#fff; --muted:#6b7280; --accent:#0b84ff;
-  --cell-bg:#fff; --cell-border:#d1d5db; --thick:#111827;
-  --match:#fffbcc; --conflict:#ffd6d6;
-}
-[data-theme="dark"]{
-  --bg:#07101a; --card:#08121a; --muted:#9aa4b2; --accent:#4aa8ff;
-  --cell-bg:#07101a; --cell-border:#16222b; --thick:#e6eef8;
-  --match:#2b3a2a; --conflict:#501212;
-}
-html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg),#e9eef8);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial;color:var(--thick)}
-.wrap{max-width:920px;margin:18px auto;padding:16px}
-.card{background:var(--card);border-radius:12px;padding:12px;box-shadow:0 6px 18px rgba(12,22,39,0.06);}
-.board{display:grid;grid-template-columns:repeat(9,48px);gap:6px;justify-content:center}
-.cell{width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:var(--cell-bg);border:1px solid var(--cell-border);position:relative;overflow:hidden;cursor:pointer}
-.cell input{width:100%;height:100%;border:0;background:transparent;font-size:20px;text-align:center;font-weight:700;outline:none;color:var(--thick)}
-.cell.box-right{border-right:3px solid var(--thick)}
-.cell.box-bottom{border-bottom:3px solid var(--thick)}
-.selected{box-shadow:0 6px 20px rgba(11,132,255,0.14);transform:translateY(-2px)}
-.match{background:var(--match)}
-.conflict{outline:3px solid rgba(255,80,80,0.9);box-shadow:0 8px 30px rgba(255,40,40,0.06)}
-.candidates{position:absolute;left:6px;top:6px;right:6px;bottom:6px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:0;font-size:10px;color:var(--muted);align-items:start;pointer-events:none}
-.candidates span{display:flex;align-items:center;justify-content:center;pointer-events:auto;cursor:pointer;opacity:1;transition:color .12s,transform .08s}
-.candidates span.hidden{display:none;opacity:0}
-.candidates span.active{color:var(--thick);font-weight:700}
-.cell.pencil-mode .candidates{pointer-events:auto}
-.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
-.btn{padding:8px 10px;border-radius:8px;border:0;background:var(--accent);color:white;cursor:pointer}
-.btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--cell-border)}
-.timeDisplay{background:rgba(0,0,0,0.04);padding:6px 10px;border-radius:8px;font-weight:700}
-#confettiCanvas{position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:9999}
+  :root{
+    --bg: #f6f8fb;
+    --card: #fff;
+    --muted: #6b7280;
+    --accent: #0b84ff;
+    --cell-border: #d1d5db;
+    --thick: #111827;
+    --match: #fffbcc;
+  }
+  [data-theme="dark"]{
+    --bg:#07101a; --card:#08121a; --muted:#9aa4b2; --accent:#4aa8ff; --cell-border:#16222b; --thick:#e6eef8; --match:#2b3a2a;
+  }
+
+  html,body{
+    height:100%; margin:0; background:linear-gradient(180deg,var(--bg),#e9eef8);
+    font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial; -webkit-font-smoothing:antialiased;
+    color:var(--thick);
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  .wrap{ max-width:1100px; margin:12px auto; padding:12px; box-sizing:border-box;}
+  .card{ background:var(--card); border-radius:12px; padding:12px; box-shadow:0 6px 18px rgba(12,22,39,0.06); border:1px solid rgba(15,23,42,0.04); }
+
+  .top-row{ display:flex; gap:12px; align-items:center; margin-bottom:10px; flex-wrap:wrap; }
+  .title{ font-size:18px; font-weight:700; }
+  .meta{ color:var(--muted); font-size:13px; margin-left:auto; }
+
+  /* main layout: board + photo panel */
+  .main {
+    display:flex;
+    gap:16px;
+    align-items:flex-start;
+    justify-content:center;
+  }
+  /* on small screens stack vertically */
+  @media (max-width:720px){
+    .main { flex-direction:column-reverse; align-items:center; padding-bottom:12px; }
+  }
+
+  /* Board container - responsive square for phones */
+  .board-wrap {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:100%;
+  }
+
+  /* Board size: fills small screens neatly while keeping a max for desktop */
+  .board {
+    width: min(92vw, 420px); /* on iPhone 15 this will fit nicely */
+    aspect-ratio: 1 / 1;      /* keep it a perfect square */
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    grid-auto-rows: 1fr;
+    gap:6px;
+    background: transparent;
+    touch-action: manipulation;
+  }
+
+  .cell{
+    border-radius:8px;
+    background: #fff;
+    border:1px solid var(--cell-border);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+    overflow:hidden;
+    cursor:pointer;
+  }
+  .cell input{
+    width:100%;
+    height:100%;
+    border:0;
+    background:transparent;
+    font-size:1.05rem;
+    text-align:center;
+    font-weight:700;
+    outline:none;
+    padding:0;
+    margin:0;
+  }
+  .cell.box-right{ border-right:3px solid var(--thick); }
+  .cell.box-bottom{ border-bottom:3px solid var(--thick); }
+  .cell.match{ background:var(--match); }
+  .cell.conflict{ outline:3px solid rgba(255,80,80,0.9); }
+
+  /* candidates (small numbers) */
+  .candidates{
+    position:absolute; inset:6px; display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr);
+    gap:0; font-size:10px; color:var(--muted); pointer-events:none; align-items:start;
+  }
+  .candidates span{
+    display:flex; align-items:center; justify-content:center; pointer-events:auto; cursor:pointer; transition: color .08s, transform .06s;
+  }
+  .candidates span.hidden{ display:none; }
+  .candidates span.active{ color:var(--thick); font-weight:700; }
+
+  /* photo panel */
+  .photo-panel{
+    width: min(44vw, 320px); /* on desktop the photo sits to the right; on mobile it's stacked and smaller */
+    max-width:360px;
+    border-radius:12px;
+    overflow:hidden;
+    background:linear-gradient(180deg,#ffffff,#f5f7fb);
+    box-shadow:0 8px 24px rgba(10,20,40,0.06);
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    align-items:center;
+    padding:12px;
+    box-sizing:border-box;
+  }
+  .photo-preview{
+    width:100%;
+    aspect-ratio: 4 / 3;
+    background: #e9eef8;
+    border-radius:8px;
+    object-fit:cover;
+    display:block;
+  }
+  .photo-controls{ width:100%; display:flex; gap:8px; align-items:center; justify-content:space-between; }
+  .photo-controls button{ padding:8px 10px; border-radius:8px; border:0; cursor:pointer; background:var(--accent); color:white }
+  .photo-controls input[type="file"]{ display:none; }
+
+  /* small utilities */
+  .controls { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0; align-items:center; }
+  .controls .btn{ padding:8px 10px; border-radius:8px; border:0; background:var(--accent); color:white; cursor:pointer; }
+  .controls .btn.ghost{ background:transparent; color:var(--muted); border:1px solid var(--cell-border); box-shadow:none; }
+
+  .timerBox{ display:flex; gap:8px; align-items:center; margin-left:auto; }
+  .timeDisplay{ background:rgba(0,0,0,0.04); padding:6px 10px; border-radius:8px; font-weight:700; }
+
+  /* small screen tweaks to make board flush on tall notched devices */
+  @media (max-width:420px){
+    body{ padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
+    .board { width: calc(100vw - 28px); } /* allow small margins */
+    .photo-panel { width: calc(100vw - 28px); max-width:100%; }
+  }
+
 </style>
 </head>
-<body>
+<body data-theme="light">
 <canvas id="confettiCanvas"></canvas>
+
 <div class="wrap">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+    <div class="title">Sudoku Player</div>
+    <div class="meta">NYT-style • Pencil mode • Mobile-friendly</div>
+  </div>
+
   <div class="card">
     <div class="controls">
-      <textarea id="raw" placeholder="Paste 9 rows (. for blanks) or .sdk content" style="flex:1;min-height:64px;padding:8px;border-radius:8px;border:1px solid var(--cell-border)"></textarea>
-      <div style="display:flex;flex-direction:column;gap:6px">
-        <button id="parseBtn" class="btn">Parse & Load</button>
-        <button id="exportBtn" class="btn ghost">Export .sdk</button>
-        <button id="clearBtn" class="btn ghost">Clear</button>
+      <textarea id="raw" placeholder="Paste .sdk or 9 rows (use '.' for blanks)" style="flex:1;min-height:56px;padding:8px;border-radius:8px;border:1px solid var(--cell-border)"></textarea>
+
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="parseBtn" class="btn">Load</button>
+        <button id="hintBtn" class="btn" style="background:linear-gradient(180deg,#ffb86b,#ff8f3b)">Hint</button>
+        <button id="solveBtn" class="btn">Solve</button>
+        <button id="checkBtn" class="btn ghost">Check</button>
+        <button id="exportBtn" class="btn ghost">Export</button>
+      </div>
+
+      <div class="timerBox" style="margin-left:8px;">
+        <div class="timeDisplay" id="timeDisplay">00:00</div>
+        <button id="timerStart" class="btn">Start</button>
+        <button id="timerPause" class="btn ghost">Pause</button>
+        <button id="timerReset" class="btn ghost">Reset</button>
+        <div id="bestTime" style="font-size:12px;color:var(--muted);margin-left:8px">Best: —</div>
       </div>
     </div>
 
-    <div class="controls">
+    <div class="main" style="margin-top:10px;">
+      <!-- board -->
+      <div class="board-wrap" style="flex:1;display:flex;justify-content:center;">
+        <div id="board" class="board" aria-label="sudoku-board"></div>
+      </div>
+
+      <!-- photo panel -->
+      <div class="photo-panel" id="photoPanel" aria-hidden="false">
+        <img id="photoPreview" class="photo-preview" src="data:image/svg+xml;utf8,\
+          <svg xmlns='http://www.w3.org/2000/svg' width='800' height='600'>\
+            <rect width='100%' height='100%' fill='%23e6eef7'/>\
+            <text x='50%' y='50%' font-size='30' text-anchor='middle' fill='%239aa4b2' dy='.3em'>Upload your photo</text>\
+          </svg>" alt="photo preview">
+        <div style="width:100%;display:flex;gap:8px;align-items:center;">
+          <label style="flex:1">
+            <input id="photoInput" type="file" accept="image/*" style="display:none">
+            <button id="choosePhoto" class="btn" style="width:100%">Choose image</button>
+          </label>
+          <button id="removePhoto" class="btn ghost" style="min-width:36px">Remove</button>
+        </div>
+        <div style="font-size:12px;color:var(--muted);text-align:center;margin-top:6px">Image will appear here. On desktop it sits to the right; on phone below the board.</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:12px;">
       <button id="pencilToggle" class="btn ghost">Pencil Mode: OFF</button>
       <button id="autoCands" class="btn ghost">Auto Candidates: ON</button>
-      <button id="hintBtn" class="btn" style="background:linear-gradient(180deg,#ffb86b,#ff8f3b)">Hint</button>
-      <button id="solveBtn" class="btn">Auto-solve</button>
-      <button id="checkBtn" class="btn ghost">Check</button>
-
-      <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
-        <div class="timeDisplay" id="timeDisplay">00:00</div>
-        <button id="timerStart" class="btn small">Start</button>
-        <button id="timerPause" class="btn ghost small">Pause</button>
-        <button id="timerReset" class="btn ghost small">Reset</button>
-        <div style="font-size:12px;color:var(--muted);margin-left:8px" id="bestTime">Best: —</div>
-      </div>
+      <button id="clearBtn" class="btn ghost">Clear</button>
+      <button id="themeToggle" class="btn ghost">Toggle Dark</button>
     </div>
-
-    <div class="board" id="board" aria-label="Sudoku board"></div>
   </div>
 </div>
 
 <script>
 (() => {
-  /* ---- Elements & state ---- */
+  // Core elements
   const board = document.getElementById('board');
   const raw = document.getElementById('raw');
   const parseBtn = document.getElementById('parseBtn');
-  const exportBtn = document.getElementById('exportBtn');
-  const clearBtn = document.getElementById('clearBtn');
-  const pencilToggle = document.getElementById('pencilToggle');
-  const autoCandsBtn = document.getElementById('autoCands');
   const hintBtn = document.getElementById('hintBtn');
   const solveBtn = document.getElementById('solveBtn');
   const checkBtn = document.getElementById('checkBtn');
-
+  const exportBtn = document.getElementById('exportBtn');
+  const pencilToggle = document.getElementById('pencilToggle');
+  const autoCandsBtn = document.getElementById('autoCands');
+  const clearBtn = document.getElementById('clearBtn');
+  const timeDisplay = document.getElementById('timeDisplay');
   const timerStart = document.getElementById('timerStart');
   const timerPause = document.getElementById('timerPause');
   const timerReset = document.getElementById('timerReset');
-  const timeDisplay = document.getElementById('timeDisplay');
   const bestTimeLabel = document.getElementById('bestTime');
+  const themeToggle = document.getElementById('themeToggle');
 
+  // photo elements
+  const photoInput = document.getElementById('photoInput');
+  const choosePhoto = document.getElementById('choosePhoto');
+  const removePhoto = document.getElementById('removePhoto');
+  const photoPreview = document.getElementById('photoPreview');
+  const photoPanel = document.getElementById('photoPanel');
+
+  // confetti canvas
   const confettiCanvas = document.getElementById('confettiCanvas');
   const ctx = confettiCanvas.getContext && confettiCanvas.getContext('2d');
+  function resizeCanvas(){ if(confettiCanvas){ confettiCanvas.width = innerWidth; confettiCanvas.height = innerHeight; } }
+  window.addEventListener('resize', resizeCanvas); resizeCanvas();
 
+  // state
   let pencilMode = false;
   let autoCandidates = true;
-  let currentlyHighlightedVal = null;
   let cachedSolution = null;
+  let currentlyHighlightedVal = null;
 
-  let timerInterval = null;
-  let timerRunning = false;
-  let timerStartTs = 0;
-  let elapsedMs = 0;
+  let timerInterval = null, elapsedMs = 0, timerRunning = false, timerStartTs = 0;
+  let confettiAnimating = false;
 
-  function resizeCanvas(){ if(confettiCanvas){ confettiCanvas.width = innerWidth; confettiCanvas.height = innerHeight; } }
-  window.addEventListener('resize', resizeCanvas);
-  resizeCanvas();
-
-  /* ---- Build board ---- */
+  // build board cells
   const cells = [];
   for(let r=0;r<9;r++){
     for(let c=0;c<9;c++){
@@ -117,47 +262,34 @@ html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg),#e9ee
       if((c+1)%3===0 && c!==8) div.classList.add('box-right');
       if((r+1)%3===0 && r!==8) div.classList.add('box-bottom');
 
-      const inp = document.createElement('input');
-      inp.type = 'tel';
-      inp.maxLength = 1;
-      inp.autocomplete = 'off';
+      const inp = document.createElement('input'); inp.type='tel'; inp.maxLength=1; inp.autocomplete='off';
 
-      const cand = document.createElement('div');
-      cand.className = 'candidates';
-
-      const candidatesSet = new Set(); // persistent pencil notes for this cell
+      const cand = document.createElement('div'); cand.className='candidates';
+      const candidatesSet = new Set();
 
       for(let v=1; v<=9; v++){
         const s = document.createElement('span');
         s.textContent = v;
         s.dataset.val = v;
         s.className = 'hidden';
-        // click behavior for candidate span
+        // candidate click
         s.addEventListener('click', (ev) => {
           ev.stopPropagation();
-          // compute possible for this cell now
-          const g2 = grid2d();
-          const possible = computeCandidatesForCell(g2, r, c);
-          const val = parseInt(s.dataset.val, 10);
+          const grid = grid2d();
+          const possible = computeCandidatesForCell(grid, r, c);
+          const val = parseInt(s.dataset.val,10);
           if(pencilMode){
-            // only allow toggling notes for currently possible candidates
-            if(!possible.includes(val)) return;
-            if(candidatesSet.has(val)){
-              candidatesSet.delete(val);
-              s.classList.remove('active');
-            } else {
-              candidatesSet.add(val);
-              s.classList.add('active');
-            }
-            // do not insert the big number in pencil mode
+            if(!possible.includes(val)) return; // only toggle possible ones
+            if(candidatesSet.has(val)){ candidatesSet.delete(val); s.classList.remove('active'); }
+            else { candidatesSet.add(val); s.classList.add('active'); }
             return;
           } else {
-            // non-pencil mode -> insert number and permanently highlight
+            // non-pencil: insert big number
             inp.value = String(val);
             candidatesSet.clear();
             refreshAll();
             currentlyHighlightedVal = val;
-            highlightMatches(currentlyHighlightedVal);
+            highlightMatches(val);
             cachedSolution = null;
             if(isSolvedAndValid()) solvedActions();
             return;
@@ -166,175 +298,115 @@ html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg),#e9ee
         cand.appendChild(s);
       }
 
-      inp.addEventListener('input', () => {
+      inp.addEventListener('input', ()=>{
         inp.value = inp.value.replace(/[^1-9]/g,'');
-        // typing clears any pencil notes for that cell
         candidatesSet.clear();
         refreshAll();
         cachedSolution = null;
         const v = parseInt(inp.value||0,10);
-        if(v) { currentlyHighlightedVal = v; highlightMatches(v); }
+        if(v){ currentlyHighlightedVal = v; highlightMatches(v); }
         if(!timerRunning && elapsedMs===0) startTimer();
         if(isSolvedAndValid()) solvedActions();
       });
-
-      // do not clear highlight on blur — permanent highlights requested
-      inp.addEventListener('focus', ()=> { div.classList.add('selected'); const v=parseInt(inp.value||0,10); if(v){ currentlyHighlightedVal = v; highlightMatches(v); } });
+      inp.addEventListener('focus', ()=> { div.classList.add('selected'); const v=parseInt(inp.value||0,10); if(v){ currentlyHighlightedVal=v;highlightMatches(v);} });
       inp.addEventListener('blur', ()=> { div.classList.remove('selected'); });
 
-      // clicking the cell (outside span) toggles permanent highlight (NYT behavior)
-      div.addEventListener('click', (ev) => {
-        if(ev.target.tagName.toLowerCase() === 'span') return; // handled by span
-        const val = parseInt(inp.value||0,10);
-        if(!val) return;
-        if(currentlyHighlightedVal === val) { currentlyHighlightedVal = null; highlightMatches(null); }
-        else { currentlyHighlightedVal = val; highlightMatches(val); }
+      // click on cell toggles permanent highlight
+      div.addEventListener('click', (ev)=>{
+        if(ev.target.tagName.toLowerCase() === 'span') return;
+        const v = parseInt(inp.value||0,10);
+        if(!v) return;
+        if(currentlyHighlightedVal === v){ currentlyHighlightedVal = null; highlightMatches(null); }
+        else { currentlyHighlightedVal = v; highlightMatches(v); }
       });
 
-      div.appendChild(inp);
-      div.appendChild(cand);
+      div.appendChild(inp); div.appendChild(cand);
       board.appendChild(div);
-
       cells.push({div, inp, cand, r, c, candidatesSet});
     }
   }
 
-  /* ---- Grid helpers ---- */
+  // grid helpers
   function grid2d(){
     const g = Array.from({length:9}, ()=>Array(9).fill(0));
-    for(const cell of cells){
-      const v = parseInt(cell.inp.value||0,10);
-      g[cell.r][cell.c] = v;
-    }
+    for(const cell of cells){ g[cell.r][cell.c] = parseInt(cell.inp.value||0,10); }
     return g;
   }
 
-  /* ---- Validation & solver ---- */
-  function isValid(g, r, c, val){
-    for(let i=0;i<9;i++){
-      if(g[r][i] === val) return false;
-      if(g[i][c] === val) return false;
-    }
+  // validation & solver
+  function isValid(g,r,c,val){
+    for(let i=0;i<9;i++){ if(g[r][i]===val) return false; if(g[i][c]===val) return false; }
     const br = Math.floor(r/3)*3, bc = Math.floor(c/3)*3;
-    for(let i=0;i<3;i++) for(let j=0;j<3;j++){
-      if(g[br+i][bc+j] === val) return false;
-    }
+    for(let i=0;i<3;i++) for(let j=0;j<3;j++) if(g[br+i][bc+j]===val) return false;
     return true;
   }
-
-  function computeCandidatesForCell(g, r, c){
+  function computeCandidatesForCell(g,r,c){
     if(g[r][c] !== 0) return [];
     const arr = [];
-    for(let v=1; v<=9; v++) if(isValid(g, r, c, v)) arr.push(v);
+    for(let v=1; v<=9; v++) if(isValid(g,r,c,v)) arr.push(v);
     return arr;
   }
+  function findEmpty(g){ for(let r=0;r<9;r++) for(let c=0;c<9;c++) if(g[r][c]===0) return [r,c]; return null; }
+  function solveGrid(g){ const e=findEmpty(g); if(!e) return true; const [r,c]=e; for(let v=1;v<=9;v++){ if(isValid(g,r,c,v)){ g[r][c]=v; if(solveGrid(g)) return true; g[r][c]=0; } } return false; }
+  function computeSolution(){ const g = grid2d().map(r=>r.slice()); if(!solveGrid(g)) return null; return g; }
 
-  function findEmpty(g){
-    for(let r=0;r<9;r++) for(let c=0;c<9;c++) if(g[r][c]===0) return [r,c];
-    return null;
-  }
-  function solveGrid(g){
-    const e = findEmpty(g);
-    if(!e) return true;
-    const [r,c] = e;
-    for(let v=1; v<=9; v++){
-      if(isValid(g, r, c, v)){
-        g[r][c] = v;
-        if(solveGrid(g)) return true;
-        g[r][c] = 0;
-      }
-    }
-    return false;
-  }
-  function computeSolution(){
-    const g = grid2d().map(row => row.slice());
-    if(!solveGrid(g)) return null;
-    return g;
-  }
-
-  /* ---- Conflicts ---- */
+  // conflicts
   function checkConflicts(){
-    const g = grid2d();
-    let ok = true;
-    cells.forEach(c => c.div.classList.remove('conflict'));
+    const g = grid2d(); let ok = true;
+    cells.forEach(c=>c.div.classList.remove('conflict'));
     for(let r=0;r<9;r++) for(let c=0;c<9;c++){
       const v = g[r][c]; if(!v) continue;
       g[r][c] = 0;
-      if(!isValid(g, r, c, v)){ cells[r*9+c].div.classList.add('conflict'); ok = false; }
-      g[r][c] = v;
+      if(!isValid(g,r,c,v)){ cells[r*9+c].div.classList.add('conflict'); ok=false; }
+      g[r][c]=v;
     }
     return ok;
   }
 
-  /* ---- Candidates display + pencil notes ----
-     Behavior requested:
-     - Only show currently possible candidates (no ghosting)
-     - In pencilMode: user can toggle notes, but only for possible candidates
-     - If cell has explicit notes (candidatesSet), show those active
-  */
+  // candidates display - only show valid candidates; pencil notes allowed for possible ones
   function refreshCandidatesForCell(cell){
-    const g = grid2d();
     const spans = Array.from(cell.cand.querySelectorAll('span'));
+    const g = grid2d();
     const val = parseInt(cell.inp.value||0,10);
-    if(val){
-      spans.forEach(s => { s.classList.add('hidden'); s.classList.remove('active'); s.style.opacity = '1'; });
-      return;
-    }
+    if(val){ spans.forEach(s=>{ s.classList.add('hidden'); s.classList.remove('active'); }); return; }
     const possible = computeCandidatesForCell(g, cell.r, cell.c);
-
-    // If user-created notes exist, show only those (but still ensure they are possible)
     if(cell.candidatesSet.size > 0){
       spans.forEach(s=>{
         const v = parseInt(s.dataset.val,10);
         if(cell.candidatesSet.has(v) && possible.includes(v)){
-          s.classList.remove('hidden');
-          s.classList.add('active');
-          s.style.opacity = '1';
-        } else {
-          s.classList.add('hidden');
-          s.classList.remove('active');
-        }
+          s.classList.remove('hidden'); s.classList.add('active'); s.style.opacity='1';
+        } else { s.classList.add('hidden'); s.classList.remove('active'); }
       });
       return;
     }
-
-    // otherwise show computed possible candidates only
-    spans.forEach(s=>{
-      const v = parseInt(s.dataset.val,10);
-      if(possible.includes(v)){
-        s.classList.remove('hidden');
-        s.classList.remove('active');
-        s.style.opacity = '1';
-      } else {
-        s.classList.add('hidden');
-        s.classList.remove('active');
-      }
-    });
+    if(autoCandidates || pencilMode){
+      spans.forEach(s=>{
+        const v = parseInt(s.dataset.val,10);
+        if(possible.includes(v)){ s.classList.remove('hidden'); s.classList.remove('active'); s.style.opacity='1'; }
+        else { s.classList.add('hidden'); s.classList.remove('active'); }
+      });
+    } else {
+      spans.forEach(s=> { s.classList.add('hidden'); s.classList.remove('active'); });
+    }
   }
 
-  function refreshAll(){
-    for(const cell of cells) refreshCandidatesForCell(cell);
-    checkConflicts();
-  }
+  function refreshAll(){ cells.forEach(c=>refreshCandidatesForCell(c)); checkConflicts(); }
 
-  /* ---- Highlighting (PERMANENT until toggled) ---- */
+  // highlighting permanent
   function highlightMatches(val){
     currentlyHighlightedVal = val;
-    cells.forEach(c => c.div.classList.remove('match'));
-    cells.forEach(c => c.cand.querySelectorAll('span').forEach(s=> s.classList.remove('active')));
+    cells.forEach(c=> c.div.classList.remove('match'));
+    cells.forEach(c=> c.cand.querySelectorAll('span').forEach(s=> s.classList.remove('active')));
     if(!val) return;
     for(const c of cells){
       if(String(c.inp.value) === String(val)) c.div.classList.add('match');
       if(pencilMode){
-        // also visually accent matching small candidates (if visible)
-        c.cand.querySelectorAll('span').forEach(s=>{
-          if(parseInt(s.dataset.val,10) === val && !s.classList.contains('hidden')) s.classList.add('active');
-        });
+        c.cand.querySelectorAll('span').forEach(s=>{ if(parseInt(s.dataset.val,10) === val && !s.classList.contains('hidden')) s.classList.add('active'); });
       }
     }
   }
 
-  /* ---- Solved check and actions ---- */
+  // solved check + actions
   function isSolvedAndValid(){
     const sol = cachedSolution || computeSolution();
     if(!sol) return false;
@@ -349,70 +421,38 @@ html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg),#e9ee
     const key = getPuzzleKey();
     const prev = localStorage.getItem(key);
     const timeMs = elapsedMs;
-    let newBest = false;
-    if(!prev || timeMs < parseInt(prev,10)){
-      localStorage.setItem(key, String(timeMs));
-      newBest = true;
-    }
+    let bestChanged = false;
+    if(!prev || timeMs < parseInt(prev,10)){ localStorage.setItem(key, String(timeMs)); bestChanged=true; }
     updateBest();
-    setTimeout(()=> alert('Puzzle complete! Time: ' + formatTime(timeMs) + (newBest ? ' — NEW BEST!' : '')), 200);
+    setTimeout(()=> alert('Puzzle complete! Time: ' + formatTime(timeMs) + (bestChanged ? ' — NEW BEST!' : '')), 200);
   }
 
-  function getPuzzleKey(){
-    try { return 'sudoku_best_' + btoa(raw.value || ''); } catch { return 'sudoku_best_default'; }
-  }
-  function updateBest(){
-    const key = getPuzzleKey();
-    const t = localStorage.getItem(key);
-    bestTimeLabel.textContent = t ? 'Best: ' + formatTime(parseInt(t,10)) : 'Best: —';
-  }
+  function getPuzzleKey(){ try{ return 'sudoku_best_'+btoa(raw.value||''); } catch { return 'sudoku_best_default'; } }
+  function updateBest(){ const t = localStorage.getItem(getPuzzleKey()); bestTimeLabel.textContent = t ? 'Best: ' + formatTime(parseInt(t,10)) : 'Best: —'; }
 
-  /* ---- Timer ---- */
-  function formatTime(ms){
-    const s = Math.floor(ms/1000);
-    const mm = String(Math.floor(s/60)).padStart(2,'0');
-    const ss = String(s%60).padStart(2,'0');
-    return mm + ':' + ss;
-  }
+  // timer
+  function formatTime(ms){ const s=Math.floor(ms/1000); return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0'); }
   function updateDisplay(){ timeDisplay.textContent = formatTime(elapsedMs); }
+  function startTimer(){ if(timerRunning) return; timerRunning=true; timerStartTs = Date.now() - elapsedMs; timerInterval = setInterval(()=>{ elapsedMs = Date.now() - timerStartTs; updateDisplay(); }, 250); }
+  function pauseTimer(){ if(!timerRunning) return; timerRunning=false; clearInterval(timerInterval); }
+  function resetTimer(){ pauseTimer(); elapsedMs = 0; updateDisplay(); }
 
-  function startTimer(){
-    if(timerRunning) return;
-    timerRunning = true;
-    timerStartTs = Date.now() - elapsedMs;
-    timerInterval = setInterval(()=>{ elapsedMs = Date.now() - timerStartTs; updateDisplay(); }, 250);
-  }
-  function pauseTimer(){
-    if(!timerRunning) return;
-    timerRunning = false;
-    clearInterval(timerInterval);
-  }
-  function resetTimer(){
-    pauseTimer();
-    elapsedMs = 0;
-    updateDisplay();
-  }
-
-  timerStart.addEventListener('click', startTimer);
-  timerPause.addEventListener('click', pauseTimer);
-  timerReset.addEventListener('click', resetTimer);
-
-  /* ---- Confetti ---- */
+  // confetti
   function random(min,max){ return Math.random()*(max-min)+min; }
   function launchConfetti(){
     if(!ctx || confettiAnimating) return;
     confettiAnimating = true;
     const w = confettiCanvas.width, h = confettiCanvas.height;
     const colors = ['#FF6B6B','#FFD93D','#6BCB77','#4D96FF','#C084FC'];
-    const count = Math.min(140, Math.floor((w*h)/30000));
+    const count = Math.min(140, Math.floor((w*h)/24000));
     let parts = [];
     for(let i=0;i<count;i++){
-      parts.push({x: random(0,w), y: random(-h*0.6,0), vx: random(-2,2), vy: random(2,6), size: random(6,12), rot: random(0,360), color: colors[Math.floor(Math.random()*colors.length)], life: random(60,140)});
+      parts.push({ x: random(0,w), y: random(-h*0.6,0), vx: random(-2,2), vy: random(2,6), size: random(6,12), rot: random(0,360), color: colors[Math.floor(Math.random()*colors.length)], life: random(70,160) });
     }
     function step(){
       ctx.clearRect(0,0,w,h);
       parts.forEach(p=>{
-        p.x += p.vx; p.y += p.vy; p.vy += 0.06; p.rot += 6; p.life--;
+        p.x+=p.vx; p.y+=p.vy; p.vy+=0.06; p.rot+=6; p.life--;
         ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot*Math.PI/180); ctx.fillStyle=p.color; ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size*0.6); ctx.restore();
       });
       parts = parts.filter(p=>p.life>0 && p.y < h+50);
@@ -421,112 +461,114 @@ html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg),#e9ee
     step();
   }
 
-  /* ---- UI actions ---- */
-
+  // actions: parse, export, solve, hint, check, clear, toggles
   parseBtn.addEventListener('click', ()=>{
     const lines = raw.value.split(/\r?\n/).map(s=>s.trim()).filter(s=>s && !s.startsWith('#'));
-    if(lines.length < 9) return alert('Please paste 9 rows (use . for blanks) or full .sdk content.');
+    if(lines.length < 9) return alert('Paste 9 rows or full .sdk content.');
     const grid = lines.slice(0,9).map(row=>{
       const r = row.replace(/[^0-9.]/g,'.').padEnd(9,'.').slice(0,9);
       return Array.from(r).map(ch => ch === '.' ? 0 : parseInt(ch,10));
     });
-    // clear cell notes
-    cells.forEach(c=>{ c.candidatesSet.clear(); });
+    cells.forEach(c => c.candidatesSet.clear());
     cachedSolution = null;
     for(let r=0;r<9;r++) for(let c=0;c<9;c++){
-      const v = grid[r][c] || '';
-      const idx = r*9+c;
+      const v = grid[r][c] || ''; const idx = r*9 + c;
       cells[idx].inp.value = v ? String(v) : '';
       cells[idx].div.classList.toggle('clue', !!v);
       cells[idx].inp.readOnly = !!v;
     }
-    refreshAll();
-    resetTimer();
-    startTimer();
-    updateBest();
+    refreshAll(); resetTimer(); startTimer(); updateBest();
   });
 
   exportBtn.addEventListener('click', ()=>{
-    const g = grid2d();
-    const text = g.map(r => r.map(v=>v||'.').join('')).join('\n');
-    if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(()=>alert('Copied to clipboard'));
-    else prompt('Copy puzzle (.sdk):', text);
-  });
-
-  clearBtn.addEventListener('click', ()=>{
-    cells.forEach(c=>{
-      c.inp.value = '';
-      c.div.classList.remove('clue','conflict','match');
-      c.candidatesSet.clear();
-      c.inp.readOnly = false;
-    });
-    cachedSolution = null;
-    currentlyHighlightedVal = null;
-    refreshAll();
-    resetTimer();
-    updateBest();
-  });
-
-  pencilToggle.addEventListener('click', ()=>{
-    pencilMode = !pencilMode;
-    pencilToggle.textContent = 'Pencil Mode: ' + (pencilMode ? 'ON' : 'OFF');
-    cells.forEach(c => c.div.classList.toggle('pencil-mode', pencilMode));
-    refreshAll();
-  });
-
-  autoCandsBtn.addEventListener('click', ()=>{
-    autoCandidates = !autoCandidates;
-    autoCandsBtn.textContent = 'Auto Candidates: ' + (autoCandidates ? 'ON' : 'OFF');
-    refreshAll();
+    const g = grid2d(); const text = g.map(r=>r.map(v=>v||'.').join('')).join('\n');
+    if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(()=>alert('Copied to clipboard')); else prompt('Copy puzzle:', text);
   });
 
   solveBtn.addEventListener('click', ()=>{
     const sol = cachedSolution || computeSolution();
-    if(!sol) return alert('No solution / puzzle invalid');
-    // apply solution
-    for(let r=0;r<9;r++) for(let c=0;c<9;c++){
-      const idx = r*9+c;
-      cells[idx].inp.value = String(sol[r][c]);
-      cells[idx].div.classList.remove('clue');
-      cells[idx].inp.readOnly = false;
-      cells[idx].candidatesSet.clear();
-    }
-    cachedSolution = sol;
-    refreshAll();
-    solvedActions();
+    if(!sol) return alert('No solution found');
+    for(let r=0;r<9;r++) for(let c=0;c<9;c++){ const idx=r*9+c; cells[idx].inp.value = String(sol[r][c]); cells[idx].div.classList.remove('clue'); cells[idx].candidatesSet.clear(); cells[idx].inp.readOnly=false; }
+    cachedSolution = sol; refreshAll(); solvedActions();
   });
 
   hintBtn.addEventListener('click', ()=>{
     if(!cachedSolution) cachedSolution = computeSolution();
-    if(!cachedSolution) return alert('No solution available (puzzle invalid)');
+    if(!cachedSolution) return alert('No solution available');
     const g = grid2d();
     for(let r=0;r<9;r++) for(let c=0;c<9;c++){
-      if(g[r][c] === 0){
-        const idx = r*9 + c;
-        cells[idx].inp.value = String(cachedSolution[r][c]);
-        cells[idx].div.classList.add('correct-pulse');
-        setTimeout(()=>cells[idx].div.classList.remove('correct-pulse'), 900);
-        refreshAll();
-        checkConflicts();
-        if(isSolvedAndValid()) solvedActions();
-        return;
-      }
+      if(g[r][c] === 0){ const idx = r*9+c; cells[idx].inp.value = String(cachedSolution[r][c]); cells[idx].div.classList.add('correct-pulse'); setTimeout(()=>cells[idx].div.classList.remove('correct-pulse'),900); refreshAll(); checkConflicts(); if(isSolvedAndValid()) solvedActions(); return; }
     }
     alert('No empty cells');
   });
 
-  checkBtn.addEventListener('click', ()=> {
-    const ok = checkConflicts();
-    alert(ok ? 'No conflicts found.' : 'Conflicts highlighted in red.');
+  checkBtn.addEventListener('click', ()=>{ const ok = checkConflicts(); alert(ok ? 'No conflicts' : 'Conflicts highlighted'); });
+
+  clearBtn.addEventListener('click', ()=>{ cells.forEach(c=>{ c.inp.value = ''; c.div.classList.remove('clue','conflict','match'); c.candidatesSet.clear(); c.inp.readOnly = false; }); cachedSolution=null; currentlyHighlightedVal=null; refreshAll(); resetTimer(); updateBest(); });
+
+  pencilToggle.addEventListener('click', ()=>{ pencilMode = !pencilMode; pencilToggle.textContent = 'Pencil Mode: ' + (pencilMode ? 'ON' : 'OFF'); cells.forEach(c=> c.div.classList.toggle('pencil-mode', pencilMode)); refreshAll(); });
+  autoCandsBtn.addEventListener('click', ()=>{ autoCandidates = !autoCandidates; autoCandsBtn.textContent = 'Auto Candidates: ' + (autoCandidates ? 'ON' : 'OFF'); refreshAll(); });
+  timerStart.addEventListener('click', startTimer); timerPause.addEventListener('click', pauseTimer); timerReset.addEventListener('click', ()=>{ resetTimer(); updateDisplay(); });
+
+  themeToggle.addEventListener('click', ()=>{ const cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'; document.documentElement.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark'); });
+
+  // photo upload handlers
+  choosePhoto.addEventListener('click', ()=> photoInput.click());
+  photoInput.addEventListener('change', (ev)=>{
+    const file = ev.target.files && ev.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => { photoPreview.src = e.target.result; };
+    reader.readAsDataURL(file);
+  });
+  removePhoto.addEventListener('click', ()=>{
+    photoPreview.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='600'><rect width='100%' height='100%' fill='%23e6eef7'/><text x='50%' y='50%' font-size='30' text-anchor='middle' fill='%239aa4b2' dy='.3em'>Upload your photo</text></svg>";
   });
 
-  /* initial state */
-  cells.forEach(c => { if(!c.candidatesSet) c.candidatesSet = new Set(); });
-  refreshAll();
-  updateBest();
+  // drag & drop onto photo panel
+  photoPanel.addEventListener('dragover', (e)=>{ e.preventDefault(); photoPanel.style.opacity=0.9; });
+  photoPanel.addEventListener('dragleave', ()=>{ photoPanel.style.opacity=1; });
+  photoPanel.addEventListener('drop', (e)=>{ e.preventDefault(); photoPanel.style.opacity=1; const f = e.dataTransfer.files && e.dataTransfer.files[0]; if(!f) return; const rdr=new FileReader(); rdr.onload=(ev)=>{ photoPreview.src=ev.target.result; }; rdr.readAsDataURL(f); });
 
-  /* utility re-export for some closures */
-  function refreshAll(){ for(const cell of cells) refreshCandidatesForCell(cell); checkConflicts(); }
+  // initial render
+  refreshAll(); updateBest();
+
+  // helper definitions used above but hoisted to keep code tidy
+  function refreshCandidatesForCell(cell){
+    // preserved earlier logic (keeps pencil notes, shows only possible candidates)
+    const spans = Array.from(cell.cand.querySelectorAll('span'));
+    const g = grid2d();
+    const val = parseInt(cell.inp.value||0,10);
+    if(val){ spans.forEach(s=> { s.classList.add('hidden'); s.classList.remove('active'); }); return; }
+    const possible = computeCandidatesForCell(g, cell.r, cell.c);
+    if(cell.candidatesSet.size > 0){
+      spans.forEach(s=>{
+        const v = parseInt(s.dataset.val,10);
+        if(cell.candidatesSet.has(v) && possible.includes(v)){ s.classList.remove('hidden'); s.classList.add('active'); s.style.opacity='1'; }
+        else { s.classList.add('hidden'); s.classList.remove('active'); }
+      });
+      return;
+    }
+    if(autoCandidates || pencilMode){
+      spans.forEach(s=>{
+        const v = parseInt(s.dataset.val,10);
+        if(possible.includes(v)){ s.classList.remove('hidden'); s.classList.remove('active'); s.style.opacity='1'; }
+        else { s.classList.add('hidden'); s.classList.remove('active'); }
+      });
+    } else {
+      spans.forEach(s=> { s.classList.add('hidden'); s.classList.remove('active'); });
+    }
+  }
+
+  function refreshAll(){
+    for(const cell of cells) refreshCandidatesForCell(cell);
+    checkConflicts();
+  }
+
+  // expose a couple helpers to console for debugging if needed
+  window.__sudoku_refresh = refreshAll;
+  window.__sudoku_getGrid = grid2d;
+
 })();
 </script>
 </body>
