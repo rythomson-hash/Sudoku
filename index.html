@@ -1,157 +1,114 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>NYT-style Sudoku Player</title>
-<meta name="theme-color" content="#0b1220"/>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>NYT-style Sudoku — Fixed Pencil & Highlights</title>
 <style>
 :root{
-  --bg:#f6f8fb; --card:#ffffff; --muted:#6b7280; --accent:#0b84ff;
+  --bg:#f6f8fb; --card:#fff; --muted:#6b7280; --accent:#0b84ff;
   --cell-bg:#fff; --cell-border:#d1d5db; --thick:#111827;
-  --match:#fffbcc; --correct:#d1ffd8; --wrong:#ffd6d6;
+  --match:#fffbcc; --conflict:#ffd6d6;
 }
 [data-theme="dark"]{
   --bg:#07101a; --card:#08121a; --muted:#9aa4b2; --accent:#4aa8ff;
   --cell-bg:#07101a; --cell-border:#16222b; --thick:#e6eef8;
-  --match:#2b3a2a; --correct:#123017; --wrong:#501212;
+  --match:#2b3a2a; --conflict:#501212;
 }
-html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg),#e9eef8);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial; -webkit-font-smoothing:antialiased;color:var(--thick);}
-.wrap{max-width:920px;margin:18px auto;padding:16px;display:flex;flex-direction:column;gap:12px;}
-.header{display:flex;align-items:center;gap:12px;}
-.header h1{margin:0;font-size:18px;}
-.header .meta{margin-left:auto;color:var(--muted);font-size:13px;}
-.card{background:var(--card);border-radius:12px;padding:12px;box-shadow:0 6px 18px rgba(12,22,39,0.06);border:1px solid rgba(15,23,42,0.04);}
-.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
-textarea{width:100%;min-height:86px;padding:10px;border-radius:8px;border:1px solid var(--cell-border);resize:vertical;background:transparent;color:inherit}
-.btn{padding:10px 12px;border-radius:10px;border:0;background:var(--accent);color:white;font-weight:600;font-size:14px;cursor:pointer;box-shadow:0 6px 14px rgba(11,132,255,0.12)}
-.btn.ghost{background:transparent;color:var(--muted);box-shadow:none;border:1px solid var(--cell-border)}
-.small{font-size:12px;padding:8px 10px}
-.board-wrap{display:flex;gap:16px;flex-direction:row;flex-wrap:wrap;align-items:flex-start;justify-content:center}
-.board{display:grid;grid-template-columns:repeat(9,calc(100vmin/11));gap:6px;background:transparent;touch-action:manipulation;}
-.cell{width:calc(100vmin/11);height:calc(100vmin/11);display:flex;align-items:center;justify-content:center;border-radius:8px;background:var(--cell-bg);border:1px solid var(--cell-border);box-shadow:0 1px 0 rgba(0,0,0,0.02) inset;position:relative;overflow:hidden;transition:transform .12s ease, box-shadow .12s ease, background-color .18s ease;cursor:pointer;}
-.cell input{width:100%;height:100%;border:0;background:transparent;font-size:20px;text-align:center;font-weight:700;outline:none;color:var(--thick);cursor:default;z-index:3;}
-@media(min-width:420px){ .board {grid-template-columns:repeat(9,48px);} .cell{width:48px;height:48px;} .cell input{font-size:20px;} }
-.cell.box-right{border-right:3px solid var(--thick);}
-.cell.box-bottom{border-bottom:3px solid var(--thick);}
-.clue input{font-weight:900;color:var(--thick);}
-.selected{box-shadow:0 6px 20px rgba(11,132,255,0.14);transform:translateY(-2px);}
-.match{background:var(--match);}
-.correct-pulse{animation:correct-pulse .8s ease forwards;}
-@keyframes correct-pulse{0%{background:var(--correct);transform:scale(1.02);}50%{transform:scale(1.03);}100%{transform:none;background:transparent;}}
-.red-flash{animation:red-flash .8s ease forwards;}
-@keyframes red-flash{0%{background:var(--wrong);transform:translateY(-2px);}60%{transform:translateY(0);}100%{background:transparent;}}
-.glow{transition:box-shadow .25s ease;box-shadow:0 0 18px rgba(11,132,255,0.16);}
-.conflict{outline:3px solid rgba(255,80,80,0.9);box-shadow:0 8px 30px rgba(255,40,40,0.06);}
-
-/* candidate grid (3x3 small numbers) */
-.candidates{position:absolute;left:6px;top:6px;right:6px;bottom:6px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:0;font-size:9px;color:var(--muted);align-items:start;pointer-events:none;z-index:1}
-.candidates span{display:flex;align-items:center;justify-content:center;opacity:0.95;pointer-events:auto;cursor:pointer;transition:opacity .12s ease, color .12s ease}
-.candidates span.hidden{opacity:0.05} /* faded ghost */
-.candidates span.active{color:var(--thick);font-weight:700;opacity:1}
+html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg),#e9eef8);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial;color:var(--thick)}
+.wrap{max-width:920px;margin:18px auto;padding:16px}
+.card{background:var(--card);border-radius:12px;padding:12px;box-shadow:0 6px 18px rgba(12,22,39,0.06);}
+.board{display:grid;grid-template-columns:repeat(9,48px);gap:6px;justify-content:center}
+.cell{width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:var(--cell-bg);border:1px solid var(--cell-border);position:relative;overflow:hidden;cursor:pointer}
+.cell input{width:100%;height:100%;border:0;background:transparent;font-size:20px;text-align:center;font-weight:700;outline:none;color:var(--thick)}
+.cell.box-right{border-right:3px solid var(--thick)}
+.cell.box-bottom{border-bottom:3px solid var(--thick)}
+.selected{box-shadow:0 6px 20px rgba(11,132,255,0.14);transform:translateY(-2px)}
+.match{background:var(--match)}
+.conflict{outline:3px solid rgba(255,80,80,0.9);box-shadow:0 8px 30px rgba(255,40,40,0.06)}
+.candidates{position:absolute;left:6px;top:6px;right:6px;bottom:6px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:0;font-size:10px;color:var(--muted);align-items:start;pointer-events:none}
+.candidates span{display:flex;align-items:center;justify-content:center;pointer-events:auto;cursor:pointer;opacity:1;transition:color .12s,transform .08s}
+.candidates span.hidden{display:none;opacity:0}
+.candidates span.active{color:var(--thick);font-weight:700}
 .cell.pencil-mode .candidates{pointer-events:auto}
-#confettiCanvas{position:fixed;left:0;top:0;pointer-events:none;width:100%;height:100%;z-index:9999;}
-.footer{font-size:13px;color:var(--muted);margin-top:8px}
-.toggle{margin-left:auto;padding:8px;border-radius:8px;border:1px solid var(--cell-border);cursor:pointer;background:transparent}
-
-/* timer layout */
-.timerBox{display:flex;align-items:center;gap:8px;margin-left:6px}
+.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.btn{padding:8px 10px;border-radius:8px;border:0;background:var(--accent);color:white;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--cell-border)}
 .timeDisplay{background:rgba(0,0,0,0.04);padding:6px 10px;border-radius:8px;font-weight:700}
-.bestTime{font-size:12px;color:var(--muted)}
+#confettiCanvas{position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:9999}
 </style>
 </head>
 <body>
 <canvas id="confettiCanvas"></canvas>
-
 <div class="wrap">
-  <div class="header">
-    <h1>Sudoku Player</h1>
-    <div class="meta">NYT-style • Pencil Mode • Auto Candidates • Timer</div>
-  </div>
-
   <div class="card">
-    <div style="display:flex;gap:12px;align-items:flex-start">
-      <div style="flex:1">
-        <textarea id="raw" placeholder="Paste .sdk or 9 rows (use '.' for blanks)"></textarea>
-
-        <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <button id="parseBtn" class="btn small">Parse & Load</button>
-          <button id="hintBtn" class="btn small" style="background:linear-gradient(180deg,#ffb86b,#ff8f3b)">Hint</button>
-          <button id="solveBtn" class="btn small">Auto-solve</button>
-          <button id="checkBtn" class="btn ghost small">Check</button>
-          <button id="exportBtn" class="btn ghost small">Export .sdk</button>
-          <button id="autoCands" class="btn ghost small">Auto Candidates: OFF</button>
-          <button id="pencilToggle" class="btn ghost small">Pencil Mode: OFF</button>
-
-          <div class="timerBox">
-            <div class="timeDisplay" id="timeDisplay">00:00</div>
-            <button id="timerStart" class="btn small">Start</button>
-            <button id="timerPause" class="btn ghost small">Pause</button>
-            <button id="timerReset" class="btn ghost small">Reset</button>
-            <div style="display:flex;flex-direction:column;align-items:flex-end">
-              <div class="bestTime" id="bestTime">Best: —</div>
-              <div class="bestTime" style="font-size:11px;color:var(--muted)">Auto-start on parse/type</div>
-            </div>
-          </div>
-        </div>
+    <div class="controls">
+      <textarea id="raw" placeholder="Paste 9 rows (. for blanks) or .sdk content" style="flex:1;min-height:64px;padding:8px;border-radius:8px;border:1px solid var(--cell-border)"></textarea>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button id="parseBtn" class="btn">Parse & Load</button>
+        <button id="exportBtn" class="btn ghost">Export .sdk</button>
+        <button id="clearBtn" class="btn ghost">Clear</button>
       </div>
     </div>
 
-    <div style="height:12px"></div>
+    <div class="controls">
+      <button id="pencilToggle" class="btn ghost">Pencil Mode: OFF</button>
+      <button id="autoCands" class="btn ghost">Auto Candidates: ON</button>
+      <button id="hintBtn" class="btn" style="background:linear-gradient(180deg,#ffb86b,#ff8f3b)">Hint</button>
+      <button id="solveBtn" class="btn">Auto-solve</button>
+      <button id="checkBtn" class="btn ghost">Check</button>
 
-    <div class="board-wrap" style="justify-content:center">
-      <div id="board" class="board" aria-label="Sudoku board"></div>
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+        <div class="timeDisplay" id="timeDisplay">00:00</div>
+        <button id="timerStart" class="btn small">Start</button>
+        <button id="timerPause" class="btn ghost small">Pause</button>
+        <button id="timerReset" class="btn ghost small">Reset</button>
+        <div style="font-size:12px;color:var(--muted);margin-left:8px" id="bestTime">Best: —</div>
+      </div>
     </div>
 
-    <div class="footer" style="display:flex;align-items:center;gap:8px">
-      <div>Tap a cell to type. Click a filled cell to permanently highlight all identical digits. Pencil mode uses notes (click to toggle).</div>
-      <button id="clearBtn" class="btn ghost small" style="margin-left:auto">Clear</button>
-      <button id="theme" class="toggle small">Toggle Dark</button>
-    </div>
+    <div class="board" id="board" aria-label="Sudoku board"></div>
   </div>
 </div>
 
 <script>
 (() => {
-  /* Elements */
+  /* ---- Elements & state ---- */
   const board = document.getElementById('board');
   const raw = document.getElementById('raw');
   const parseBtn = document.getElementById('parseBtn');
-  const solveBtn = document.getElementById('solveBtn');
-  const hintBtn = document.getElementById('hintBtn');
-  const checkBtn = document.getElementById('checkBtn');
   const exportBtn = document.getElementById('exportBtn');
   const clearBtn = document.getElementById('clearBtn');
+  const pencilToggle = document.getElementById('pencilToggle');
   const autoCandsBtn = document.getElementById('autoCands');
-  const pencilBtn = document.getElementById('pencilToggle');
-  const themeBtn = document.getElementById('theme');
+  const hintBtn = document.getElementById('hintBtn');
+  const solveBtn = document.getElementById('solveBtn');
+  const checkBtn = document.getElementById('checkBtn');
 
-  const timeDisplay = document.getElementById('timeDisplay');
   const timerStart = document.getElementById('timerStart');
   const timerPause = document.getElementById('timerPause');
   const timerReset = document.getElementById('timerReset');
+  const timeDisplay = document.getElementById('timeDisplay');
   const bestTimeLabel = document.getElementById('bestTime');
 
   const confettiCanvas = document.getElementById('confettiCanvas');
   const ctx = confettiCanvas.getContext && confettiCanvas.getContext('2d');
 
-  /* State */
-  let autoCandidates = true;
   let pencilMode = false;
-  let cachedSolution = null;
+  let autoCandidates = true;
   let currentlyHighlightedVal = null;
+  let cachedSolution = null;
+
   let timerInterval = null;
-  let elapsedMs = 0;
   let timerRunning = false;
   let timerStartTs = 0;
-  let confettiParticles = [];
-  let confettiAnimating = false;
+  let elapsedMs = 0;
 
   function resizeCanvas(){ if(confettiCanvas){ confettiCanvas.width = innerWidth; confettiCanvas.height = innerHeight; } }
   window.addEventListener('resize', resizeCanvas);
   resizeCanvas();
 
-  /* Build board and per-cell state (candidatesSet for pencil notes) */
+  /* ---- Build board ---- */
   const cells = [];
   for(let r=0;r<9;r++){
     for(let c=0;c<9;c++){
@@ -162,27 +119,29 @@ textarea{width:100%;min-height:86px;padding:10px;border-radius:8px;border:1px so
 
       const inp = document.createElement('input');
       inp.type = 'tel';
-      inp.inputMode = 'numeric';
       inp.maxLength = 1;
       inp.autocomplete = 'off';
 
       const cand = document.createElement('div');
       cand.className = 'candidates';
 
-      // store notes as a Set so they persist and are independent of refreshCandidates
-      const candidatesSet = new Set();
+      const candidatesSet = new Set(); // persistent pencil notes for this cell
 
       for(let v=1; v<=9; v++){
         const s = document.createElement('span');
         s.textContent = v;
         s.dataset.val = v;
-        s.className = 'hidden'; // default hidden until refreshCandidates shows them (ghost if impossible)
-        // candidate click behavior
-        s.addEventListener('click', (ev)=>{
+        s.className = 'hidden';
+        // click behavior for candidate span
+        s.addEventListener('click', (ev) => {
           ev.stopPropagation();
-          // pencil mode toggles note persistently
+          // compute possible for this cell now
+          const g2 = grid2d();
+          const possible = computeCandidatesForCell(g2, r, c);
+          const val = parseInt(s.dataset.val, 10);
           if(pencilMode){
-            const val = parseInt(s.dataset.val,10);
+            // only allow toggling notes for currently possible candidates
+            if(!possible.includes(val)) return;
             if(candidatesSet.has(val)){
               candidatesSet.delete(val);
               s.classList.remove('active');
@@ -190,54 +149,46 @@ textarea{width:100%;min-height:86px;padding:10px;border-radius:8px;border:1px so
               candidatesSet.add(val);
               s.classList.add('active');
             }
-            // keep candidate visibility (don't hide DOM element when toggled)
+            // do not insert the big number in pencil mode
+            return;
+          } else {
+            // non-pencil mode -> insert number and permanently highlight
+            inp.value = String(val);
+            candidatesSet.clear();
+            refreshAll();
+            currentlyHighlightedVal = val;
+            highlightMatches(currentlyHighlightedVal);
+            cachedSolution = null;
+            if(isSolvedAndValid()) solvedActions();
             return;
           }
-          // non-pencil mode: insert the number
-          inp.focus();
-          inp.value = s.dataset.val;
-          // when you insert, clear saved notes for this cell
-          candidatesSet.clear();
-          refreshCandidates(); checkConflicts();
-          currentlyHighlightedVal = parseInt(s.dataset.val,10);
-          highlightMatches(currentlyHighlightedVal);
-          cachedSolution = null;
-          if(isSolvedAndValid()) solvedActions();
         });
-
         cand.appendChild(s);
       }
 
-      // input handlers
-      inp.addEventListener('input', ()=>{
+      inp.addEventListener('input', () => {
         inp.value = inp.value.replace(/[^1-9]/g,'');
-        candidatesSet.clear(); // typing clears pencil notes for that cell
-        refreshCandidates();
-        checkConflicts();
+        // typing clears any pencil notes for that cell
+        candidatesSet.clear();
+        refreshAll();
         cachedSolution = null;
-        const val = parseInt(inp.value||0,10);
-        currentlyHighlightedVal = val || currentlyHighlightedVal;
-        highlightMatches(currentlyHighlightedVal);
+        const v = parseInt(inp.value||0,10);
+        if(v) { currentlyHighlightedVal = v; highlightMatches(v); }
         if(!timerRunning && elapsedMs===0) startTimer();
         if(isSolvedAndValid()) solvedActions();
       });
 
-      inp.addEventListener('focus', ()=>{
-        div.classList.add('selected');
-        const val = parseInt(inp.value||0,10);
-        if(val) { currentlyHighlightedVal = val; highlightMatches(val); }
-      });
-      inp.addEventListener('blur', ()=>{ div.classList.remove('selected'); /* do not clear highlight */ });
+      // do not clear highlight on blur — permanent highlights requested
+      inp.addEventListener('focus', ()=> { div.classList.add('selected'); const v=parseInt(inp.value||0,10); if(v){ currentlyHighlightedVal = v; highlightMatches(v); } });
+      inp.addEventListener('blur', ()=> { div.classList.remove('selected'); });
 
-      // clicking the cell (if it currently has a number) toggles permanent highlight
-      div.addEventListener('click', (e)=>{
-        // do not toggle when clicking a candidate (handled separately)
-        if(e.target.tagName.toLowerCase() === 'span') return;
+      // clicking the cell (outside span) toggles permanent highlight (NYT behavior)
+      div.addEventListener('click', (ev) => {
+        if(ev.target.tagName.toLowerCase() === 'span') return; // handled by span
         const val = parseInt(inp.value||0,10);
         if(!val) return;
-        if(currentlyHighlightedVal === val) { currentlyHighlightedVal = null; }
-        else { currentlyHighlightedVal = val; }
-        highlightMatches(currentlyHighlightedVal);
+        if(currentlyHighlightedVal === val) { currentlyHighlightedVal = null; highlightMatches(null); }
+        else { currentlyHighlightedVal = val; highlightMatches(val); }
       });
 
       div.appendChild(inp);
@@ -248,22 +199,18 @@ textarea{width:100%;min-height:86px;padding:10px;border-radius:8px;border:1px so
     }
   }
 
-  /* Helpers: grid as 2D, flat, etc. */
+  /* ---- Grid helpers ---- */
   function grid2d(){
-    const g = Array.from({length:9},()=>Array(9).fill(0));
+    const g = Array.from({length:9}, ()=>Array(9).fill(0));
     for(const cell of cells){
       const v = parseInt(cell.inp.value||0,10);
       g[cell.r][cell.c] = v;
     }
     return g;
   }
-  function flatGrid(){
-    return cells.map(c => parseInt(c.inp.value||0,10));
-  }
 
-  /* Validation / solver */
+  /* ---- Validation & solver ---- */
   function isValid(g, r, c, val){
-    // g is 2D array
     for(let i=0;i<9;i++){
       if(g[r][i] === val) return false;
       if(g[i][c] === val) return false;
@@ -278,7 +225,7 @@ textarea{width:100%;min-height:86px;padding:10px;border-radius:8px;border:1px so
   function computeCandidatesForCell(g, r, c){
     if(g[r][c] !== 0) return [];
     const arr = [];
-    for(let v=1; v<=9; v++) if(isValid(g,r,c,v)) arr.push(v);
+    for(let v=1; v<=9; v++) if(isValid(g, r, c, v)) arr.push(v);
     return arr;
   }
 
@@ -287,11 +234,11 @@ textarea{width:100%;min-height:86px;padding:10px;border-radius:8px;border:1px so
     return null;
   }
   function solveGrid(g){
-    const empty = findEmpty(g);
-    if(!empty) return true;
-    const [r,c] = empty;
+    const e = findEmpty(g);
+    if(!e) return true;
+    const [r,c] = e;
     for(let v=1; v<=9; v++){
-      if(isValid(g,r,c,v)){
+      if(isValid(g, r, c, v)){
         g[r][c] = v;
         if(solveGrid(g)) return true;
         g[r][c] = 0;
@@ -300,129 +247,131 @@ textarea{width:100%;min-height:86px;padding:10px;border-radius:8px;border:1px so
     return false;
   }
   function computeSolution(){
-    const g = grid2d().map(r => r.slice());
+    const g = grid2d().map(row => row.slice());
     if(!solveGrid(g)) return null;
     return g;
   }
 
-  /* Conflicts */
+  /* ---- Conflicts ---- */
   function checkConflicts(){
     const g = grid2d();
     let ok = true;
-    cells.forEach(c=> c.div.classList.remove('conflict'));
+    cells.forEach(c => c.div.classList.remove('conflict'));
     for(let r=0;r<9;r++) for(let c=0;c<9;c++){
       const v = g[r][c]; if(!v) continue;
-      // temporarily remove it and test validity
       g[r][c] = 0;
-      if(!isValid(g,r,c,v)) { cells[r*9+c].div.classList.add('conflict'); ok = false; }
+      if(!isValid(g, r, c, v)){ cells[r*9+c].div.classList.add('conflict'); ok = false; }
       g[r][c] = v;
     }
     return ok;
   }
 
-  /* Candidates display with NYT-style fade/ghost + pencil notes */
-  function refreshCandidates(){
+  /* ---- Candidates display + pencil notes ----
+     Behavior requested:
+     - Only show currently possible candidates (no ghosting)
+     - In pencilMode: user can toggle notes, but only for possible candidates
+     - If cell has explicit notes (candidatesSet), show those active
+  */
+  function refreshCandidatesForCell(cell){
     const g = grid2d();
-    for(const cell of cells){
-      const spans = Array.from(cell.cand.querySelectorAll('span'));
-      const val = parseInt(cell.inp.value||0,10);
-      if(val){
-        spans.forEach(s => { s.classList.add('hidden'); s.classList.remove('active'); });
-        continue;
-      }
-
-      // If user has explicit pencil notes (candidatesSet), show them as active
-      if(cell.candidatesSet && cell.candidatesSet.size > 0){
-        spans.forEach(s=>{
-          const v = parseInt(s.dataset.val,10);
-          s.classList.remove('hidden');
-          if(cell.candidatesSet.has(v)) s.classList.add('active'); else s.classList.remove('active');
-          // ghost impossible ones as well (keeps them visible but faded)
-          const possible = computeCandidatesForCell(g, cell.r, cell.c);
-          s.style.opacity = possible.includes(v) ? '1' : '0.2';
-        });
-        continue;
-      }
-
-      // Otherwise if autoCandidates or pencilMode, show auto computed candidates (ghost impossible)
-      if(autoCandidates || pencilMode){
-        const possible = computeCandidatesForCell(g, cell.r, cell.c);
-        spans.forEach(s=>{
-          const v = parseInt(s.dataset.val,10);
-          s.classList.remove('active');
-          s.classList.remove('hidden'); // show ghost
-          s.style.opacity = possible.includes(v) ? '1' : '0.2';
-        });
-      } else {
-        // hide all spans (no auto candidates and no notes)
-        spans.forEach(s => { s.classList.add('hidden'); s.classList.remove('active'); s.style.opacity = '0.05'; });
-      }
+    const spans = Array.from(cell.cand.querySelectorAll('span'));
+    const val = parseInt(cell.inp.value||0,10);
+    if(val){
+      spans.forEach(s => { s.classList.add('hidden'); s.classList.remove('active'); s.style.opacity = '1'; });
+      return;
     }
+    const possible = computeCandidatesForCell(g, cell.r, cell.c);
+
+    // If user-created notes exist, show only those (but still ensure they are possible)
+    if(cell.candidatesSet.size > 0){
+      spans.forEach(s=>{
+        const v = parseInt(s.dataset.val,10);
+        if(cell.candidatesSet.has(v) && possible.includes(v)){
+          s.classList.remove('hidden');
+          s.classList.add('active');
+          s.style.opacity = '1';
+        } else {
+          s.classList.add('hidden');
+          s.classList.remove('active');
+        }
+      });
+      return;
+    }
+
+    // otherwise show computed possible candidates only
+    spans.forEach(s=>{
+      const v = parseInt(s.dataset.val,10);
+      if(possible.includes(v)){
+        s.classList.remove('hidden');
+        s.classList.remove('active');
+        s.style.opacity = '1';
+      } else {
+        s.classList.add('hidden');
+        s.classList.remove('active');
+      }
+    });
   }
 
-  /* Highlighting - PERMANENT until next selection */
+  function refreshAll(){
+    for(const cell of cells) refreshCandidatesForCell(cell);
+    checkConflicts();
+  }
+
+  /* ---- Highlighting (PERMANENT until toggled) ---- */
   function highlightMatches(val){
     currentlyHighlightedVal = val;
-    cells.forEach(c=> c.div.classList.remove('match'));
-    cells.forEach(c=> {
-      // also propagate candidate highlighting when pencil mode enabled
-      c.cand.querySelectorAll('span').forEach(s=> s.classList.remove('active'));
-    });
+    cells.forEach(c => c.div.classList.remove('match'));
+    cells.forEach(c => c.cand.querySelectorAll('span').forEach(s=> s.classList.remove('active')));
     if(!val) return;
     for(const c of cells){
       if(String(c.inp.value) === String(val)) c.div.classList.add('match');
-      // if pencil mode, highlight matching small numbers visually
       if(pencilMode){
-        const spans = c.cand.querySelectorAll('span');
-        spans.forEach(s => {
-          if(parseInt(s.dataset.val,10) === val) s.classList.add('active');
+        // also visually accent matching small candidates (if visible)
+        c.cand.querySelectorAll('span').forEach(s=>{
+          if(parseInt(s.dataset.val,10) === val && !s.classList.contains('hidden')) s.classList.add('active');
         });
       }
     }
   }
 
-  /* Solved check / actions */
+  /* ---- Solved check and actions ---- */
   function isSolvedAndValid(){
     const sol = cachedSolution || computeSolution();
     if(!sol) return false;
     const g = grid2d();
-    for(let r=0;r<9;r++) for(let c=0;c<9;c++){
-      if(g[r][c] !== sol[r][c]) return false;
-    }
+    for(let r=0;r<9;r++) for(let c=0;c<9;c++) if(g[r][c] !== sol[r][c]) return false;
     return true;
   }
 
   function solvedActions(){
-    // stop timer and show confetti, update best time
     pauseTimer();
     launchConfetti();
-    const puzzleKey = getPuzzleStorageKey();
-    const prev = localStorage.getItem(puzzleKey);
+    const key = getPuzzleKey();
+    const prev = localStorage.getItem(key);
     const timeMs = elapsedMs;
-    let bestChanged = false;
+    let newBest = false;
     if(!prev || timeMs < parseInt(prev,10)){
-      localStorage.setItem(puzzleKey, String(timeMs));
-      bestChanged = true;
+      localStorage.setItem(key, String(timeMs));
+      newBest = true;
     }
-    updateBestLabel();
-    setTimeout(()=> alert('Puzzle complete! Time: ' + formatTime(timeMs) + (bestChanged ? ' — NEW BEST!' : '')), 250);
+    updateBest();
+    setTimeout(()=> alert('Puzzle complete! Time: ' + formatTime(timeMs) + (newBest ? ' — NEW BEST!' : '')), 200);
   }
 
-  function getPuzzleStorageKey(){
-    const text = raw.value || '';
-    try { return 'sudoku_best_' + btoa(text); } catch { return 'sudoku_best_default'; }
+  function getPuzzleKey(){
+    try { return 'sudoku_best_' + btoa(raw.value || ''); } catch { return 'sudoku_best_default'; }
   }
-  function updateBestLabel(){
-    const key = getPuzzleStorageKey();
+  function updateBest(){
+    const key = getPuzzleKey();
     const t = localStorage.getItem(key);
     bestTimeLabel.textContent = t ? 'Best: ' + formatTime(parseInt(t,10)) : 'Best: —';
   }
 
-  /* Timer */
+  /* ---- Timer ---- */
   function formatTime(ms){
-    const total = Math.floor(ms/1000);
-    const mm = Math.floor(total/60).toString().padStart(2,'0');
-    const ss = (total%60).toString().padStart(2,'0');
+    const s = Math.floor(ms/1000);
+    const mm = String(Math.floor(s/60)).padStart(2,'0');
+    const ss = String(s%60).padStart(2,'0');
     return mm + ':' + ss;
   }
   function updateDisplay(){ timeDisplay.textContent = formatTime(elapsedMs); }
@@ -431,17 +380,12 @@ textarea{width:100%;min-height:86px;padding:10px;border-radius:8px;border:1px so
     if(timerRunning) return;
     timerRunning = true;
     timerStartTs = Date.now() - elapsedMs;
-    timerInterval = setInterval(()=>{
-      elapsedMs = Date.now() - timerStartTs;
-      updateDisplay();
-    }, 250);
-    timerStart.textContent = 'Running';
+    timerInterval = setInterval(()=>{ elapsedMs = Date.now() - timerStartTs; updateDisplay(); }, 250);
   }
   function pauseTimer(){
     if(!timerRunning) return;
     timerRunning = false;
     clearInterval(timerInterval);
-    timerStart.textContent = 'Start';
   }
   function resetTimer(){
     pauseTimer();
@@ -449,114 +393,64 @@ textarea{width:100%;min-height:86px;padding:10px;border-radius:8px;border:1px so
     updateDisplay();
   }
 
-  /* Confetti */
+  timerStart.addEventListener('click', startTimer);
+  timerPause.addEventListener('click', pauseTimer);
+  timerReset.addEventListener('click', resetTimer);
+
+  /* ---- Confetti ---- */
   function random(min,max){ return Math.random()*(max-min)+min; }
   function launchConfetti(){
     if(!ctx || confettiAnimating) return;
     confettiAnimating = true;
     const w = confettiCanvas.width, h = confettiCanvas.height;
     const colors = ['#FF6B6B','#FFD93D','#6BCB77','#4D96FF','#C084FC'];
-    const count = Math.min(160, Math.floor((w*h)/22000));
-    confettiParticles = [];
+    const count = Math.min(140, Math.floor((w*h)/30000));
+    let parts = [];
     for(let i=0;i<count;i++){
-      confettiParticles.push({
-        x: random(0,w),
-        y: random(-h*0.6, 0),
-        vx: random(-2,2),
-        vy: random(2,6),
-        size: random(6,12),
-        rot: random(0,360),
-        color: colors[Math.floor(Math.random()*colors.length)],
-        life: random(70,160)
-      });
+      parts.push({x: random(0,w), y: random(-h*0.6,0), vx: random(-2,2), vy: random(2,6), size: random(6,12), rot: random(0,360), color: colors[Math.floor(Math.random()*colors.length)], life: random(60,140)});
     }
     function step(){
       ctx.clearRect(0,0,w,h);
-      confettiParticles.forEach(p=>{
+      parts.forEach(p=>{
         p.x += p.vx; p.y += p.vy; p.vy += 0.06; p.rot += 6; p.life--;
-        ctx.save();
-        ctx.translate(p.x,p.y);
-        ctx.rotate(p.rot * Math.PI/180);
-        ctx.fillStyle = p.color;
-        ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size*0.6);
-        ctx.restore();
+        ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot*Math.PI/180); ctx.fillStyle=p.color; ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size*0.6); ctx.restore();
       });
-      confettiParticles = confettiParticles.filter(p => p.life>0 && p.y < h + 50);
-      if(confettiParticles.length>0) requestAnimationFrame(step);
-      else { confettiAnimating = false; ctx.clearRect(0,0,w,h); }
+      parts = parts.filter(p=>p.life>0 && p.y < h+50);
+      if(parts.length>0) requestAnimationFrame(step); else { confettiAnimating=false; ctx.clearRect(0,0,w,h); }
     }
     step();
   }
 
-  /* UI actions: parse, export, solve, hint, check, clear, toggles */
+  /* ---- UI actions ---- */
+
   parseBtn.addEventListener('click', ()=>{
-    const lines = raw.value.split(/\r?\n/).map(s=>s.trim()).filter(s=>s!=='' && !s.startsWith('#'));
-    if(lines.length < 9) return alert('Paste 9 rows (or full .sdk).');
+    const lines = raw.value.split(/\r?\n/).map(s=>s.trim()).filter(s=>s && !s.startsWith('#'));
+    if(lines.length < 9) return alert('Please paste 9 rows (use . for blanks) or full .sdk content.');
     const grid = lines.slice(0,9).map(row=>{
       const r = row.replace(/[^0-9.]/g,'.').padEnd(9,'.').slice(0,9);
       return Array.from(r).map(ch => ch === '.' ? 0 : parseInt(ch,10));
     });
+    // clear cell notes
+    cells.forEach(c=>{ c.candidatesSet.clear(); });
     cachedSolution = null;
-    setGrid(grid, true);
+    for(let r=0;r<9;r++) for(let c=0;c<9;c++){
+      const v = grid[r][c] || '';
+      const idx = r*9+c;
+      cells[idx].inp.value = v ? String(v) : '';
+      cells[idx].div.classList.toggle('clue', !!v);
+      cells[idx].inp.readOnly = !!v;
+    }
+    refreshAll();
     resetTimer();
     startTimer();
-    updateBestLabel();
+    updateBest();
   });
-
-  function setGrid(grid, clues=false){
-    for(let r=0;r<9;r++) for(let c=0;c<9;c++){
-      const i = r*9 + c;
-      const v = grid[r] && grid[r][c] ? String(grid[r][c]) : '';
-      cells[i].inp.value = v;
-      cells[i].div.classList.toggle('clue', clues && v);
-      cells[i].inp.readOnly = (clues && v) ? true : false;
-      // clear any persisted pencil notes for loaded clues
-      cells[i].candidatesSet.clear();
-    }
-    refreshCandidates();
-    checkConflicts();
-  }
 
   exportBtn.addEventListener('click', ()=>{
     const g = grid2d();
-    const text = g.map(r => r.map(v => v || '.').join('')).join('\n');
-    // copy to clipboard and also show prompt fallback
-    if(navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(text).then(()=> alert('Puzzle copied to clipboard (.sdk format)'));
-    } else {
-      prompt('Copy puzzle (.sdk):', text);
-    }
-  });
-
-  solveBtn.addEventListener('click', ()=>{
-    const sol = cachedSolution || computeSolution();
-    if(!sol) return alert('No solution found / puzzle invalid.');
-    setGrid(sol, false);
-    cachedSolution = sol;
-    solvedActions();
-  });
-
-  hintBtn.addEventListener('click', ()=>{
-    if(!cachedSolution) cachedSolution = computeSolution();
-    if(!cachedSolution) return alert('No solution (puzzle invalid).');
-    const g = grid2d();
-    for(let r=0;r<9;r++) for(let c=0;c<9;c++){
-      if(g[r][c] === 0){
-        const idx = r*9 + c;
-        cells[idx].inp.value = String(cachedSolution[r][c]);
-        cells[idx].div.classList.add('correct-pulse');
-        setTimeout(()=> cells[idx].div.classList.remove('correct-pulse'), 900);
-        refreshCandidates(); checkConflicts();
-        if(isSolvedAndValid()) solvedActions();
-        return;
-      }
-    }
-    alert('No empty cells to hint.');
-  });
-
-  checkBtn.addEventListener('click', ()=> {
-    const ok = checkConflicts();
-    alert(ok ? 'No conflicts found.' : 'Conflicts highlighted in red.');
+    const text = g.map(r => r.map(v=>v||'.').join('')).join('\n');
+    if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(()=>alert('Copied to clipboard'));
+    else prompt('Copy puzzle (.sdk):', text);
   });
 
   clearBtn.addEventListener('click', ()=>{
@@ -564,129 +458,75 @@ textarea{width:100%;min-height:86px;padding:10px;border-radius:8px;border:1px so
       c.inp.value = '';
       c.div.classList.remove('clue','conflict','match');
       c.candidatesSet.clear();
+      c.inp.readOnly = false;
     });
     cachedSolution = null;
     currentlyHighlightedVal = null;
-    refreshCandidates();
+    refreshAll();
     resetTimer();
-    updateBestLabel();
+    updateBest();
+  });
+
+  pencilToggle.addEventListener('click', ()=>{
+    pencilMode = !pencilMode;
+    pencilToggle.textContent = 'Pencil Mode: ' + (pencilMode ? 'ON' : 'OFF');
+    cells.forEach(c => c.div.classList.toggle('pencil-mode', pencilMode));
+    refreshAll();
   });
 
   autoCandsBtn.addEventListener('click', ()=>{
     autoCandidates = !autoCandidates;
     autoCandsBtn.textContent = 'Auto Candidates: ' + (autoCandidates ? 'ON' : 'OFF');
-    refreshCandidates();
+    refreshAll();
   });
 
-  pencilBtn.addEventListener('click', ()=>{
-    pencilMode = !pencilMode;
-    pencilBtn.textContent = 'Pencil Mode: ' + (pencilMode ? 'ON' : 'OFF');
-    cells.forEach(c => c.div.classList.toggle('pencil-mode', pencilMode));
-    refreshCandidates();
-  });
-
-  themeBtn.addEventListener('click', ()=>{
-    const cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
-    document.documentElement.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
-  });
-
-  /* Timer controls */
-  timerStart.addEventListener('click', startTimer);
-  timerPause.addEventListener('click', pauseTimer);
-  timerReset.addEventListener('click', ()=>{ resetTimer(); updateDisplay(); });
-
-  /* Misc small helpers */
-  function formatTime(ms){ return formatTime; } // placeholder to satisfy linter above (unused)
-
-  /* Initial UI state */
-  updateBestLabel();
-  refreshCandidates();
-
-  /* Ensure each cell object has candidatesSet */
-  cells.forEach(c => { if(!c.candidatesSet) c.candidatesSet = new Set(); });
-
-  /* Utility functions used in multiple places */
-  function checkConflicts(){
-    // reuse earlier function but must return boolean
-    const g = grid2d();
-    cells.forEach(c => c.div.classList.remove('conflict'));
-    let ok = true;
+  solveBtn.addEventListener('click', ()=>{
+    const sol = cachedSolution || computeSolution();
+    if(!sol) return alert('No solution / puzzle invalid');
+    // apply solution
     for(let r=0;r<9;r++) for(let c=0;c<9;c++){
-      const v = g[r][c];
-      if(!v) continue;
-      g[r][c] = 0;
-      if(!isValid(g, r, c, v)){
-        cells[r*9+c].div.classList.add('conflict');
-        ok = false;
-      }
-      g[r][c] = v;
+      const idx = r*9+c;
+      cells[idx].inp.value = String(sol[r][c]);
+      cells[idx].div.classList.remove('clue');
+      cells[idx].inp.readOnly = false;
+      cells[idx].candidatesSet.clear();
     }
-    return ok;
-  }
+    cachedSolution = sol;
+    refreshAll();
+    solvedActions();
+  });
 
-  // Re-define any functions referenced earlier but overwritten or placeholder
-  function formatTime(ms){
-    const total = Math.floor(ms/1000);
-    const mm = Math.floor(total/60).toString().padStart(2,'0');
-    const ss = (total%60).toString().padStart(2,'0');
-    return mm + ':' + ss;
-  }
-
-  // refreshCandidates was defined earlier; replace it with correct version using candidatesSet
-  function refreshCandidates(){
+  hintBtn.addEventListener('click', ()=>{
+    if(!cachedSolution) cachedSolution = computeSolution();
+    if(!cachedSolution) return alert('No solution available (puzzle invalid)');
     const g = grid2d();
-    for(const cell of cells){
-      const spans = Array.from(cell.cand.querySelectorAll('span'));
-      const val = parseInt(cell.inp.value||0,10);
-      if(val){
-        spans.forEach(s=> { s.classList.add('hidden'); s.classList.remove('active'); s.style.opacity='0.05'; });
-        continue;
-      }
-      // if user has explicit pencil notes
-      if(cell.candidatesSet && cell.candidatesSet.size > 0){
-        const possible = computeCandidatesForCell(g, cell.r, cell.c);
-        spans.forEach(s=>{
-          const v = parseInt(s.dataset.val,10);
-          s.classList.remove('hidden');
-          s.style.opacity = possible.includes(v) ? '1' : '0.2';
-          s.classList.toggle('active', cell.candidatesSet.has(v));
-        });
-        continue;
-      }
-      // otherwise auto compute or ghost
-      if(autoCandidates || pencilMode){
-        const possible = computeCandidatesForCell(g, cell.r, cell.c);
-        spans.forEach(s=>{
-          const v = parseInt(s.dataset.val,10);
-          s.classList.remove('active');
-          s.classList.remove('hidden');
-          s.style.opacity = possible.includes(v) ? '1' : '0.2';
-        });
-      } else {
-        spans.forEach(s=> { s.classList.add('hidden'); s.classList.remove('active'); s.style.opacity='0.05'; });
+    for(let r=0;r<9;r++) for(let c=0;c<9;c++){
+      if(g[r][c] === 0){
+        const idx = r*9 + c;
+        cells[idx].inp.value = String(cachedSolution[r][c]);
+        cells[idx].div.classList.add('correct-pulse');
+        setTimeout(()=>cells[idx].div.classList.remove('correct-pulse'), 900);
+        refreshAll();
+        checkConflicts();
+        if(isSolvedAndValid()) solvedActions();
+        return;
       }
     }
-  }
+    alert('No empty cells');
+  });
 
-  // highlightMatches already defined; ensure it exists here
-  function highlightMatches(val){
-    currentlyHighlightedVal = val;
-    cells.forEach(c=> c.div.classList.remove('match'));
-    cells.forEach(c => c.cand.querySelectorAll('span').forEach(s=> s.classList.remove('active')));
-    if(!val) return;
-    for(const c of cells){
-      if(String(c.inp.value) === String(val)) c.div.classList.add('match');
-      if(pencilMode){
-        c.cand.querySelectorAll('span').forEach(s=>{
-          if(parseInt(s.dataset.val,10) === val) s.classList.add('active');
-        });
-      }
-    }
-  }
+  checkBtn.addEventListener('click', ()=> {
+    const ok = checkConflicts();
+    alert(ok ? 'No conflicts found.' : 'Conflicts highlighted in red.');
+  });
 
-  // final sanity: initial candidate render
-  refreshCandidates();
+  /* initial state */
+  cells.forEach(c => { if(!c.candidatesSet) c.candidatesSet = new Set(); });
+  refreshAll();
+  updateBest();
 
+  /* utility re-export for some closures */
+  function refreshAll(){ for(const cell of cells) refreshCandidatesForCell(cell); checkConflicts(); }
 })();
 </script>
 </body>
