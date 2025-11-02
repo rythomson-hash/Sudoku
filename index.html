@@ -12,18 +12,15 @@
   }
   [data-theme="dark"]{ --bg:#07101a; --card:#08121a; --muted:#9aa4b2; --accent:#4aa8ff; --cell-border:#16222b; --thick:#e6eef8; --match:#2b3a2a; }
   html,body{height:100%;margin:0;padding:0;background:linear-gradient(180deg,var(--bg),#e9eef8);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial;color:var(--thick);-webkit-font-smoothing:antialiased;overflow-x:hidden}
-  /* container */
   .wrap{max-width:1100px;margin:10px auto;padding:12px;box-sizing:border-box}
   .card{background:var(--card);border-radius:12px;padding:12px;box-shadow:0 6px 18px rgba(12,22,39,0.06);border:1px solid rgba(15,23,42,0.04);overflow:hidden}
   .top{display:flex;align-items:center;gap:12px;margin-bottom:10px}
   .title{font-size:18px;font-weight:700}
   .meta{margin-left:auto;color:var(--muted);font-size:13px}
 
-  /* main layout */
   .main{display:flex;gap:16px;align-items:flex-start;justify-content:center}
   @media (max-width:720px){ .main{flex-direction:column-reverse;align-items:center} }
 
-  /* board container */
   .board-wrap{display:flex;align-items:center;justify-content:center;width:100%}
   .board{width:min(92vw,420px);aspect-ratio:1/1;display:grid;grid-template-columns:repeat(9,1fr);gap:6px;touch-action:manipulation}
   @media (max-width:420px){ .board{width:calc(100vw - 28px);} }
@@ -48,42 +45,21 @@
   .photo-controls button{padding:8px 10px;border-radius:8px;border:0;background:var(--accent);color:white;cursor:pointer}
   .photo-controls button.ghost{background:transparent;color:var(--muted);border:1px solid var(--cell-border)}
 
-  /* header controls */
   .controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
   .btn{padding:8px 10px;border-radius:8px;border:0;background:var(--accent);color:white;cursor:pointer}
   .btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--cell-border)}
   .timerBox{display:flex;align-items:center;gap:8px;margin-left:auto}
   .timeDisplay{background:rgba(0,0,0,0.04);padding:6px 10px;border-radius:8px;font-weight:700}
 
-  /* small final row */
   .bottom-row{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:12px}
   .bottom-row .btn.ghost{padding:8px 10px}
 
-  /* confetti full-screen canvas */
   #confettiCanvas{position:fixed;left:0;top:0;pointer-events:none;width:100%;height:100%;z-index:9999}
 
-  /* Chameleon: hidden until celebration */
-  #chameleon{
-    position:fixed;
-    left:50%;
-    top:30%;
-    transform:translate(-50%,-50%) scale(0.8);
-    z-index:10000;
-    pointer-events:none;
-    opacity:0;
-    transition:opacity .25s ease, transform .4s cubic-bezier(.2,.9,.2,1);
-    filter:drop-shadow(0 12px 18px rgba(0,0,0,0.12));
-  }
+  #chameleon{position:fixed;left:50%;top:30%;transform:translate(-50%,-50%) scale(0.8);z-index:10000;pointer-events:none;opacity:0;transition:opacity .25s ease, transform .4s cubic-bezier(.2,.9,.2,1);filter:drop-shadow(0 12px 18px rgba(0,0,0,0.12));}
   #chameleon.show{opacity:1; transform:translate(-50%,-50%) scale(1); animation:cham-dance 2.8s ease-in-out;}
-  @keyframes cham-dance{
-    0%{ transform:translate(-50%,-50%) rotate(-10deg) translateY(6px); }
-    20%{ transform:translate(-50%,-50%) rotate(6deg) translateY(-6px); }
-    40%{ transform:translate(-50%,-50%) rotate(-6deg) translateY(4px); }
-    60%{ transform:translate(-50%,-50%) rotate(6deg) translateY(-4px); }
-    100%{ transform:translate(-50%,-50%) rotate(0deg) translateY(0); }
-  }
+  @keyframes cham-dance{0%{ transform:translate(-50%,-50%) rotate(-10deg) translateY(6px);}20%{ transform:translate(-50%,-50%) rotate(6deg) translateY(-6px);}40%{ transform:translate(-50%,-50%) rotate(-6deg) translateY(4px);}60%{ transform:translate(-50%,-50%) rotate(6deg) translateY(-4px);}100%{ transform:translate(-50%,-50%) rotate(0deg) translateY(0);}}
 
-  /* small adjustments to avoid unexpected big scroll */
   body,html{min-height:100vh}
   .wrap{margin-bottom:12px}
 </style>
@@ -91,36 +67,18 @@
 <body data-theme="light">
 <canvas id="confettiCanvas"></canvas>
 
-<!-- chameleon SVG overlay (hidden until solve) -->
 <div id="chameleon" aria-hidden="true" title="chameleon">
-  <!-- simple stylized green chameleon SVG -->
   <svg width="160" height="120" viewBox="0 0 160 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="chameleon">
     <defs>
-      <linearGradient id="g1" x1="0" x2="1">
-        <stop offset="0" stop-color="#7ae582"/><stop offset="1" stop-color="#2fb96d"/>
-      </linearGradient>
-      <filter id="eyes" x="-20%" y="-20%" width="140%" height="140%">
-        <feGaussianBlur in="SourceAlpha" stdDeviation="1" result="b"/>
-        <feOffset dx="0" dy="1" result="o"/>
-        <feBlend in="SourceGraphic" in2="o"/>
-      </filter>
+      <linearGradient id="g1" x1="0" x2="1"><stop offset="0" stop-color="#7ae582"/><stop offset="1" stop-color="#2fb96d"/></linearGradient>
     </defs>
     <g transform="translate(10,10)">
-      <!-- body -->
       <ellipse cx="70" cy="60" rx="48" ry="34" fill="url(#g1)" stroke="#0b6b3f" stroke-width="2"/>
-      <!-- tail -->
       <path d="M110 70 C126 54, 140 48, 140 34" stroke="#2fb96d" stroke-width="8" fill="none" stroke-linecap="round"/>
-      <!-- head -->
       <circle cx="40" cy="50" r="18" fill="url(#g1)" stroke="#0b6b3f" stroke-width="2"/>
-      <!-- eye -->
-      <g transform="translate(48,48)">
-        <circle cx="0" cy="0" r="8" fill="#fff"/>
-        <circle cx="0" cy="0" r="4" fill="#123"/>
-      </g>
-      <!-- legs -->
+      <g transform="translate(48,48)"><circle cx="0" cy="0" r="8" fill="#fff"/><circle cx="0" cy="0" r="4" fill="#123"/></g>
       <path d="M46 82 l-6 10" stroke="#0b6b3f" stroke-width="4" stroke-linecap="round"/>
       <path d="M94 82 l6 10" stroke="#0b6b3f" stroke-width="4" stroke-linecap="round"/>
-      <!-- smile -->
       <path d="M34 58 q8 8 20 3" stroke="#0b6b3f" stroke-width="2" fill="none" stroke-linecap="round"/>
     </g>
   </svg>
@@ -129,17 +87,17 @@
 <div class="wrap">
   <div class="top">
     <div class="title">Sudoku Player</div>
-    <div class="meta">NYT-style • Mobile-friendly</div>
+    <div class="meta">For the goochyiest of bubbas</div>
   </div>
 
   <div class="card" role="application" aria-label="Sudoku application">
     <div class="controls" style="align-items:flex-start">
       <textarea id="raw" placeholder="Paste .sdk or 9 rows (use '.' for blanks)" style="flex:1;min-height:56px;padding:8px;border-radius:8px;border:1px solid var(--cell-border);"></textarea>
-
       <div style="display:flex;flex-direction:column;gap:8px;margin-left:8px">
         <button id="parseBtn" class="btn">Load</button>
         <button id="exportBtn" class="btn ghost">Export</button>
         <button id="clearBtn" class="btn ghost">Clear</button>
+        <button id="permanentBtn" class="btn" title="Generate a single-file HTML with the chosen photo embedded">Generate permanent page</button>
       </div>
     </div>
 
@@ -160,14 +118,12 @@
     </div>
 
     <div class="main">
-      <!-- board -->
       <div class="board-wrap" style="flex:1;display:flex;justify-content:center;">
         <div id="board" class="board" aria-label="sudoku-board"></div>
       </div>
 
-      <!-- photo panel -->
       <div class="photo-panel" id="photoPanel" aria-hidden="false">
-        <img id="photoPreview" class="photo-preview" src="" alt="photo preview">
+        <img id="photoPreview" class="photo-preview" alt="photo preview">
         <div class="photo-controls">
           <input id="photoInput" type="file" accept="image/*" style="display:none">
           <button id="choosePhoto" class="btn" type="button">Choose image</button>
@@ -198,6 +154,7 @@
   const pencilToggle = document.getElementById('pencilToggle');
   const autoCandsBtn = document.getElementById('autoCands');
   const themeToggle = document.getElementById('themeToggle');
+  const permanentBtn = document.getElementById('permanentBtn');
 
   const choosePhoto = document.getElementById('choosePhoto');
   const photoInput = document.getElementById('photoInput');
@@ -246,7 +203,7 @@
           const possible = computeCandidatesForCell(g, r, c);
           const val = parseInt(s.dataset.val,10);
           if(pencilMode){
-            if(!possible.includes(val)) return; // only toggle if possible
+            if(!possible.includes(val)) return;
             if(candidatesSet.has(val)){ candidatesSet.delete(val); s.classList.remove('active'); } else { candidatesSet.add(val); s.classList.add('active'); }
             return;
           } else {
@@ -325,7 +282,7 @@
     return ok;
   }
 
-  /* --- Candidates display & pencil notes (only show possible candidates) --- */
+  /* --- Candidates display & pencil notes --- */
   function refreshCandidatesForCell(cell){
     const spans = Array.from(cell.cand.querySelectorAll('span'));
     const g = grid2d();
@@ -352,7 +309,7 @@
   }
   function refreshAll(){ cells.forEach(c=>refreshCandidatesForCell(c)); checkConflicts(); }
 
-  /* --- Highlighting (permanent until toggled) --- */
+  /* --- Highlighting --- */
   function highlightMatches(val){
     currentlyHighlightedVal = val;
     cells.forEach(c=> c.div.classList.remove('match'));
@@ -368,14 +325,7 @@
 
   /* --- Solved check & actions --- */
   function isSolvedAndValid(){ const sol = cachedSolution || computeSolution(); if(!sol) return false; const g=grid2d(); for(let r=0;r<9;r++) for(let c=0;c<9;c++) if(g[r][c] !== sol[r][c]) return false; return true; }
-
-  function solvedActions(){
-    pauseTimer(); launchConfetti(); showChameleon();
-    const key = getPuzzleKey(); const prev = localStorage.getItem(key); const timeMs = elapsedMs;
-    let bestChanged=false; if(!prev || timeMs < parseInt(prev,10)){ localStorage.setItem(key,String(timeMs)); bestChanged=true; }
-    updateBest(); setTimeout(()=> alert('Puzzle complete! Time: ' + formatTime(timeMs) + (bestChanged ? ' — NEW BEST!' : '')), 250);
-  }
-
+  function solvedActions(){ pauseTimer(); launchConfetti(); showChameleon(); const key = getPuzzleKey(); const prev = localStorage.getItem(key); const timeMs = elapsedMs; let bestChanged=false; if(!prev || timeMs < parseInt(prev,10)){ localStorage.setItem(key,String(timeMs)); bestChanged=true; } updateBest(); setTimeout(()=> alert('Puzzle complete! Time: ' + formatTime(timeMs) + (bestChanged ? ' — NEW BEST!' : '')), 250); }
   function getPuzzleKey(){ try{return 'sudoku_best_'+btoa(raw.value||''); }catch(e){ return 'sudoku_best_default'; } }
   function updateBest(){ const t = localStorage.getItem(getPuzzleKey()); bestTimeLabel.textContent = t ? 'Best: ' + formatTime(parseInt(t,10)) : 'Best: —'; }
 
@@ -385,7 +335,6 @@
   function startTimer(){ if(timerRunning) return; timerRunning=true; timerStartTs = Date.now() - elapsedMs; timerInterval = setInterval(()=>{ elapsedMs = Date.now() - timerStartTs; updateDisplay(); }, 250); }
   function pauseTimer(){ if(!timerRunning) return; timerRunning=false; clearInterval(timerInterval); }
   function resetTimer(){ pauseTimer(); elapsedMs = 0; updateDisplay(); }
-
   timerStart.addEventListener('click', startTimer); timerPause.addEventListener('click', pauseTimer); timerReset.addEventListener('click', ()=>{ resetTimer(); updateDisplay(); });
 
   /* --- Confetti --- */
@@ -412,16 +361,12 @@
     step();
   }
 
-  /* --- Chameleon (show/hide) --- */
-  function showChameleon(){
-    chameleon.classList.add('show');
-    setTimeout(()=> chameleon.classList.remove('show'), 3800); // show for ~3.8s
-  }
+  function showChameleon(){ chameleon.classList.add('show'); setTimeout(()=> chameleon.classList.remove('show'), 3800); }
 
-  /* --- UI: parse, export, solve, hint, check, clear, toggles --- */
+  /* --- UI actions --- */
   parseBtn.addEventListener('click', ()=>{
     const lines = raw.value.split(/\r?\n/).map(s=>s.trim()).filter(s=>s && !s.startsWith('#'));
-    if(lines.length < 9) return alert('Paste 9 rows (use . for blanks) or full .sdk.');
+    if(lines.length < 9) return alert('Paste 9 rows or full .sdk content.');
     const grid = lines.slice(0,9).map(row=>{ const r = row.replace(/[^0-9.]/g,'.').padEnd(9,'.').slice(0,9); return Array.from(r).map(ch => ch=='.'?0:parseInt(ch,10)); });
     cells.forEach(c=> c.candidatesSet.clear());
     cachedSolution = null;
@@ -432,8 +377,7 @@
   exportBtn.addEventListener('click', ()=>{ const g=grid2d(); const text = g.map(r=>r.map(v=>v||'.').join('')).join('\n'); if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(()=>alert('Copied to clipboard')); else prompt('Copy puzzle:', text); });
 
   solveBtn.addEventListener('click', ()=>{
-    const sol = cachedSolution || computeSolution();
-    if(!sol) return alert('No solution found');
+    const sol = cachedSolution || computeSolution(); if(!sol) return alert('No solution found');
     for(let r=0;r<9;r++) for(let c=0;c<9;c++){ const idx=r*9+c; cells[idx].inp.value = String(sol[r][c]); cells[idx].div.classList.remove('clue'); cells[idx].candidatesSet.clear(); cells[idx].inp.readOnly = false; }
     cachedSolution = sol; refreshAll(); solvedActions();
   });
@@ -456,12 +400,11 @@
   autoCandsBtn.addEventListener('click', ()=>{ autoCandidates = !autoCandidates; autoCandsBtn.textContent = 'Auto Candidates: ' + (autoCandidates ? 'ON' : 'OFF'); refreshAll(); });
   themeToggle.addEventListener('click', ()=>{ const cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'; document.documentElement.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark'); });
 
-  /* --- Photo upload persistence --- */
+  /* --- Photo persistence & upload --- */
   const PHOTO_KEY = 'sudoku_photo_dataurl';
-  // restore photo from localStorage (if any)
+  // load saved photo (if any)
   const saved = localStorage.getItem(PHOTO_KEY);
   if(saved){ photoPreview.src = saved; } else {
-    // default placeholder SVG as data URL
     photoPreview.src = "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><rect width="100%" height="100%" fill="%23e6eef7"/><text x="50%" y="50%" font-size="30" text-anchor="middle" fill="%239aa4b2" dy=".3em">Choose a photo</text></svg>');
   }
 
@@ -478,17 +421,39 @@
     photoPreview.src = "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><rect width="100%" height="100%" fill="%23e6eef7"/><text x="50%" y="50%" font-size="30" text-anchor="middle" fill="%239aa4b2" dy=".3em">Choose a photo</text></svg>');
   });
 
-  // drag & drop onto photo panel
-  const photoPanel = document.getElementById('photoPanel');
   photoPanel.addEventListener('dragover', (e)=>{ e.preventDefault(); photoPanel.style.opacity=0.95; });
   photoPanel.addEventListener('dragleave', ()=>{ photoPanel.style.opacity=1; });
   photoPanel.addEventListener('drop', (e)=>{ e.preventDefault(); photoPanel.style.opacity=1; const f = e.dataTransfer.files && e.dataTransfer.files[0]; if(!f) return; const rdr=new FileReader(); rdr.onload=(ev)=>{ photoPreview.src=ev.target.result; try{ localStorage.setItem(PHOTO_KEY, ev.target.result); }catch{} }; rdr.readAsDataURL(f); });
+
+  /* --- Generate permanent single-file HTML with embedded photo --- */
+  permanentBtn.addEventListener('click', ()=>{
+    // ensure a data URL photo exists
+    const src = photoPreview.src || '';
+    if(!src.startsWith('data:')) return alert('Please choose a photo first (so it can be embedded).');
+    // clone the whole documentElement and put the current data URL for the photo
+    const cloneDoc = document.documentElement.cloneNode(true);
+    const img = cloneDoc.querySelector('#photoPreview');
+    if(img) img.setAttribute('src', src);
+    // Optionally remove the "Generate permanent page" button itself from the clone so exported file looks clean
+    const permBtnClone = cloneDoc.querySelector('#permanentBtn');
+    if(permBtnClone) permBtnClone.parentNode && permBtnClone.parentNode.removeChild(permBtnClone);
+    // Create full HTML string and download
+    const html = '<!doctype html>\n' + cloneDoc.outerHTML;
+    const blob = new Blob([html], {type:'text/html'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sudoku_with_photo.html';
+    a.click();
+    setTimeout(()=> URL.revokeObjectURL(url), 2000);
+    alert('Downloaded a self-contained HTML file. Host or share that file and anyone who opens it will see the embedded photo.');
+  });
 
   /* --- Final init --- */
   cells.forEach(c => { if(!c.candidatesSet) c.candidatesSet = new Set(); });
   refreshAll(); updateBest();
 
-  // Expose tiny debug helpers
+  // expose small debug helpers
   window.__sudoku_refresh = refreshAll;
   window.__sudoku_getGrid = grid2d;
 
