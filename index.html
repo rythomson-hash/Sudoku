@@ -1,222 +1,300 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NYT-Style Sudoku</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Sudoku Player — with Timer & Candidates</title>
+<meta name="theme-color" content="#0b1220"/>
 <style>
-  body {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    min-height: 100vh;
-    background: #f7f7f7;
-    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-    padding: 20px;
-  }
-  #sudoku-container {
-    display: grid;
-    grid-template-columns: repeat(9, 60px);
-    grid-template-rows: repeat(9, 60px);
-    border: 4px solid #333;
-    background: #333;
-  }
-  .cell {
-    background: #fff;
-    border: 1px solid #999;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-weight: bold;
-    font-size: 24px;
-    position: relative;
-    cursor: pointer;
-  }
-  /* Bold box borders like NYT */
-  .cell.border-bottom { border-bottom: 4px solid #333; }
-  .cell.border-right { border-right: 4px solid #333; }
-  .cell.fixed { color: #000; }
-  .cell.selected { background: #ffd; }
-  .cell.highlight { background: #d6f0ff; }
-  .candidates {
-    font-weight: normal;
-    font-size: 10px;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(3, 1fr);
-    justify-items: center;
-    align-items: center;
-    position: absolute;
-    top: 2px; left: 2px; right: 2px; bottom: 2px;
-    color: #555;
-  }
-  #controls {
-    margin-top: 20px;
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-  button {
-    padding: 10px 15px;
-    font-size: 16px;
-    cursor: pointer;
-  }
+:root{
+  --bg:#f6f8fb; --card:#ffffff; --muted:#6b7280; --accent:#0b84ff;
+  --cell-bg:#fff; --cell-border:#d1d5db; --thick:#111827;
+  --match:#fffbcc; --correct:#d1ffd8; --wrong:#ffd6d6;
+}
+[data-theme="dark"]{
+  --bg:#07101a; --card:#08121a; --muted:#9aa4b2; --accent:#4aa8ff;
+  --cell-bg:#07101a; --cell-border:#16222b; --thick:#e6eef8;
+  --match:#2b3a2a; --correct:#123017; --wrong:#501212;
+}
+html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg),#e9eef8);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial; -webkit-font-smoothing:antialiased;color:var(--thick);}
+.wrap{max-width:920px;margin:18px auto;padding:16px;display:flex;flex-direction:column;gap:12px;}
+.header{display:flex;align-items:center;gap:12px;}
+.header h1{margin:0;font-size:18px;}
+.header .meta{margin-left:auto;color:var(--muted);font-size:13px;}
+.card{background:var(--card);border-radius:12px;padding:12px;box-shadow:0 6px 18px rgba(12,22,39,0.06);border:1px solid rgba(15,23,42,0.04);}
+.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+textarea{width:100%;min-height:86px;padding:10px;border-radius:8px;border:1px solid var(--cell-border);resize:vertical;background:transparent;color:inherit}
+.btn{padding:10px 12px;border-radius:10px;border:0;background:var(--accent);color:white;font-weight:600;font-size:14px;cursor:pointer;box-shadow:0 6px 14px rgba(11,132,255,0.12)}
+.btn.ghost{background:transparent;color:var(--muted);box-shadow:none;border:1px solid var(--cell-border)}
+.small{font-size:12px;padding:8px 10px}
+.board-wrap{display:flex;gap:16px;flex-direction:row;flex-wrap:wrap;align-items:flex-start;justify-content:center}
+.board{display:grid;grid-template-columns:repeat(9,calc(100vmin/11));gap:6px;background:transparent;touch-action:manipulation;}
+.cell{width:calc(100vmin/11);height:calc(100vmin/11);display:flex;align-items:center;justify-content:center;border-radius:8px;background:var(--cell-bg);border:1px solid var(--cell-border);box-shadow:0 1px 0 rgba(0,0,0,0.02) inset;position:relative;overflow:hidden;transition:transform .12s ease, box-shadow .12s ease, background-color .18s ease;}
+.cell input{width:100%;height:100%;border:0;background:transparent;font-size:20px;text-align:center;font-weight:700;outline:none;color:var(--thick);cursor:default;z-index:3;}
+@media(min-width:420px){ .board {grid-template-columns:repeat(9,48px);} .cell{width:48px;height:48px;} .cell input{font-size:20px;} }
+.cell.box-right{border-right:3px solid var(--thick);}
+.cell.box-bottom{border-bottom:3px solid var(--thick);}
+.clue input{font-weight:900;color:var(--thick);}
+.selected{box-shadow:0 6px 20px rgba(11,132,255,0.14);transform:translateY(-2px);}
+.match{background:var(--match);}
+.correct-pulse{animation:correct-pulse .8s ease forwards;}
+@keyframes correct-pulse{0%{background:var(--correct);transform:scale(1.02);}50%{transform:scale(1.03);}100%{transform:none;background:transparent;}}
+.red-flash{animation:red-flash .8s ease forwards;}
+@keyframes red-flash{0%{background:var(--wrong);transform:translateY(-2px);}60%{transform:translateY(0);}100%{background:transparent;}}
+.glow{transition:box-shadow .25s ease;box-shadow:0 0 18px rgba(11,132,255,0.16);}
+.conflict{outline:3px solid rgba(255,80,80,0.9);box-shadow:0 8px 30px rgba(255,40,40,0.06);}
+.highlight{background:rgba(11,132,255,0.15);}
+
+/* candidate grid (3x3 small numbers) */
+.candidates{position:absolute;left:6px;top:6px;right:6px;bottom:6px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:0;font-size:9px;color:var(--muted);align-items:start;pointer-events:none;z-index:1}
+.candidates span{display:flex;align-items:center;justify-content:center;opacity:0.95;pointer-events:auto;cursor:pointer}
+.candidates span.hidden{opacity:0;}
+.candidates span.active{color:var(--thick);font-weight:700}
+.cell.pencil-mode .candidates{pointer-events:auto}
+#confettiCanvas{position:fixed;left:0;top:0;pointer-events:none;width:100%;height:100%;z-index:9999;}
+.footer{font-size:13px;color:var(--muted);margin-top:8px}
+.toggle{margin-left:auto;padding:8px;border-radius:8px;border:1px solid var(--cell-border);cursor:pointer;background:transparent}
+.timerBox{display:flex;align-items:center;gap:8px;margin-left:6px}
+.timeDisplay{background:rgba(0,0,0,0.04);padding:6px 10px;border-radius:8px;font-weight:700}
+.bestTime{font-size:12px;color:var(--muted)}
 </style>
 </head>
 <body>
-
-<h1>NYT-Style Sudoku</h1>
-<div id="sudoku-container"></div>
-<div id="controls">
-  <button id="pencil-toggle">Pencil Mode: OFF</button>
-  <button id="clear-cell">Clear Cell</button>
-  <button id="reset-board">Reset Board</button>
+<canvas id="confettiCanvas"></canvas>
+<div class="wrap">
+  <div class="header">
+    <h1>Sudoku Player</h1>
+    <div class="meta">Auto candidates • Timer • Pencil mode</div>
+  </div>
+  <div class="card">
+    <div style="display:flex;gap:12px;align-items:flex-start">
+      <div style="flex:1">
+        <textarea id="raw" placeholder="Paste .sdk content or 9 rows (use '.' for blanks)"></textarea>
+        <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button id="parseBtn" class="btn small">Parse & Load</button>
+          <button id="hintBtn" class="btn small" style="background:linear-gradient(180deg,#ffb86b,#ff8f3b)">Hint (1)</button>
+          <button id="solveBtn" class="btn small">Auto-solve</button>
+          <button id="checkBtn" class="btn ghost small">Check</button>
+          <button id="exportBtn" class="btn ghost small">Export .sdk</button>
+          <button id="autoCands" class="btn ghost small">Auto Candidates: OFF</button>
+          <button id="pencilToggle" class="btn ghost small">Pencil Mode: OFF</button>
+          <div class="timerBox">
+            <div class="timeDisplay" id="timeDisplay">00:00</div>
+            <button id="timerStart" class="btn small">Start</button>
+            <button id="timerPause" class="btn ghost small">Pause</button>
+            <button id="timerReset" class="btn ghost small">Reset</button>
+            <div style="display:flex;flex-direction:column;align-items:flex-end">
+              <div class="bestTime" id="bestTime">Best: —</div>
+              <div class="bestTime" style="font-size:11px;color:var(--muted)">Auto-start on parse/type</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="height:12px"></div>
+    <div class="board-wrap" style="justify-content:center">
+      <div id="board" class="board" aria-label="Sudoku board"></div>
+    </div>
+    <div class="footer" style="display:flex;align-items:center;gap:8px">
+      <div>Tap a cell to type. Use Hint for one-cell help. Conflicts are highlighted in red.</div>
+      <button id="clearBtn" class="btn ghost small" style="margin-left:auto">Clear</button>
+      <button id="theme" class="toggle small">Toggle Dark</button>
+    </div>
+  </div>
 </div>
 
 <script>
-const container = document.getElementById('sudoku-container');
-let pencilMode = false;
-let selectedCell = null;
+(() => {
+  const board = document.getElementById('board');
+  const raw = document.getElementById('raw');
+  const parseBtn = document.getElementById('parseBtn');
+  const solveBtn = document.getElementById('solveBtn');
+  const hintBtn = document.getElementById('hintBtn');
+  const checkBtn = document.getElementById('checkBtn');
+  const exportBtn = document.getElementById('exportBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const autoCandsBtn = document.getElementById('autoCands');
+  const pencilBtn = document.getElementById('pencilToggle');
+  const themeBtn = document.getElementById('theme');
 
-// Sample puzzle (0 = empty)
-const puzzle = [
-  [5,3,0,0,7,0,0,0,0],
-  [6,0,0,1,9,5,0,0,0],
-  [0,9,8,0,0,0,0,6,0],
-  [8,0,0,0,6,0,0,0,3],
-  [4,0,0,8,0,3,0,0,1],
-  [7,0,0,0,2,0,0,0,6],
-  [0,6,0,0,0,0,2,8,0],
-  [0,0,0,4,1,9,0,0,5],
-  [0,0,0,0,8,0,0,7,9]
-];
+  const timeDisplay = document.getElementById('timeDisplay');
+  const timerStart = document.getElementById('timerStart');
+  const timerPause = document.getElementById('timerPause');
+  const timerReset = document.getElementById('timerReset');
+  const bestTimeLabel = document.getElementById('bestTime');
 
-let board = [];
-function deepCopy(arr) { return arr.map(r => r.slice()); }
+  const confettiCanvas = document.getElementById('confettiCanvas');
+  const ctx = confettiCanvas.getContext && confettiCanvas.getContext('2d');
 
-function createBoard() {
-  container.innerHTML = '';
-  board = deepCopy(puzzle);
-  for(let row = 0; row < 9; row++){
-    for(let col = 0; col < 9; col++){
-      const cell = document.createElement('div');
-      cell.classList.add('cell');
-      if((row+1)%3===0 && row<8) cell.classList.add('border-bottom');
-      if((col+1)%3===0 && col<8) cell.classList.add('border-right');
-      cell.dataset.row = row;
-      cell.dataset.col = col;
-      container.appendChild(cell);
+  let autoCandidates = false;
+  let pencilMode = false;
+  let cachedSolution = null;
+  let confettiAnimating = false;
+  let highlightVal = null; // for permanent highlight
 
-      if(board[row][col] !== 0){
-        cell.textContent = board[row][col];
-        cell.classList.add('fixed');
-      } else {
-        const candidates = document.createElement('div');
-        candidates.classList.add('candidates');
-        candidates.innerHTML = Array(9).fill('').map((_,i) => `<span>${i+1}</span>`).join('');
-        cell.appendChild(candidates);
+  // timer state
+  let timerInterval = null;
+  let elapsedMs = 0;
+  let timerRunning = false;
+  let timerStartTs = 0;
+
+  function resizeCanvas(){ confettiCanvas.width = innerWidth; confettiCanvas.height = innerHeight; }
+  addEventListener('resize', resizeCanvas); resizeCanvas();
+
+  const cells = [];
+  for(let r=0;r<9;r++){
+    for(let c=0;c<9;c++){
+      const div = document.createElement('div'); div.className='cell';
+      if((c+1)%3===0 && c!==8) div.classList.add('box-right');
+      if((r+1)%3===0 && r!==8) div.classList.add('box-bottom');
+      const inp = document.createElement('input'); inp.type='tel'; inp.inputMode='numeric'; inp.maxLength=1; inp.autocomplete='off';
+      const cand = document.createElement('div'); cand.className='candidates';
+      for(let v=1; v<=9; v++){
+        const s = document.createElement('span');
+        s.textContent = v;
+        s.dataset.val = v;
+        s.className = 'hidden';
+        cand.appendChild(s);
       }
-
-      cell.addEventListener('click', () => selectCell(cell));
+      div.appendChild(inp);
+      div.appendChild(cand);
+      board.appendChild(div);
+      cells.push({div,inp,cand,r,c});
     }
   }
-  updateCandidates();
-}
 
-function selectCell(cell){
-  if(selectedCell) selectedCell.classList.remove('selected');
-  selectedCell = cell;
-  cell.classList.add('selected');
-  highlightSameNumbers(cell.dataset.value);
-}
+  function getGrid(){ 
+    const g = Array.from({length:9},()=>Array(9).fill(0));
+    for(let i=0;i<81;i++){ const v=cells[i].inp.value; g[Math.floor(i/9)][i%9]=v?parseInt(v,10):0; }
+    return g;
+  }
 
-function highlightSameNumbers(value){
-  document.querySelectorAll('.cell').forEach(c => c.classList.remove('highlight'));
-  if(!value) return;
-  document.querySelectorAll('.cell').forEach(c => {
-    if(c.dataset.value === value){
-      c.classList.add('highlight');
+  function setGrid(grid,clues=false){
+    for(let r=0;r<9;r++) for(let c=0;c<9;c++){
+      const i=r*9+c, v=grid[r][c]?String(grid[r][c]):'';
+      cells[i].inp.value=v;
+      if(clues && v){ cells[i].div.classList.add('clue'); cells[i].inp.readOnly=true; }
+      else{ cells[i].div.classList.remove('clue'); cells[i].inp.readOnly=false; }
     }
+    refreshCandidates();
+    checkAndMarkConflicts();
+    updateHighlight();
+  }
+
+  function parseText(txt){
+    if(!txt) return null;
+    const lines = txt.split(/\r?\n/).map(s=>s.trim()).filter(s=>s!==''&&!s.startsWith('#'));
+    if(lines.length>=9){
+      return lines.slice(0,9).map(l=>l.replace(/[^0-9.]/g,'.').padEnd(9,'.').split('').map(ch=>ch==='.'?0:parseInt(ch,10)));
+    }
+    const compact = txt.replace(/[^0-9.]/g,'').slice(0,81);
+    if(compact.length>=81){ return Array.from({length:9},(_,r)=>Array.from(compact.slice(r*9,r*9+9)).map(ch=>ch==='.'?0:parseInt(ch,10))); }
+    return null;
+  }
+
+  function isValid(g,r,c,val){
+    for(let i=0;i<9;i++){ if(g[r][i]===val||g[i][c]===val) return false; }
+    const br=Math.floor(r/3)*3, bc=Math.floor(c/3)*3;
+    for(let i=0;i<3;i++) for(let j=0;j<3;j++) if(g[br+i][bc+j]===val) return false;
+    return true;
+  }
+
+  function findEmpty(g){ for(let r=0;r<9;r++) for(let c=0;c<9;c++) if(g[r][c]===0) return [r,c]; return null; }
+  function solveGrid(g){ const e=findEmpty(g); if(!e) return true; const [r,c]=e; for(let v=1;v<=9;v++){ if(isValid(g,r,c,v)){ g[r][c]=v; if(solveGrid(g)) return true; g[r][c]=0; } } return false; }
+
+  function findConflicts(g){ const list=[]; for(let r=0;r<9;r++) for(let c=0;c<9;c++){ const v=g[r][c]; if(!v) continue; for(let k=0;k<9;k++){ if(k!==c&&g[r][k]===v) list.push([r,c]); if(k!==r&&g[k][c]===v) list.push([r,c]); } const br=Math.floor(r/3)*3, bc=Math.floor(c/3)*3; for(let i=0;i<3;i++) for(let j=0;j<3;j++){ const rr=br+i, cc=bc+j; if((rr!==r||cc!==c)&&g[rr][cc]===v) list.push([r,c]); } } const seen={}; return list.filter(([r,c])=>{ const k=r+','+c; if(seen[k]) return false; seen[k]=1; return true; }); }
+
+  function checkAndMarkConflicts(){ cells.forEach(c=>c.div.classList.remove('conflict')); const conf=findConflicts(getGrid()); conf.forEach(([r,c])=>cells[r*9+c].div.classList.add('conflict')); return conf; }
+
+  function computeCandidatesForCell(g,r,c){ if(g[r][c]!==0) return []; const arr=[]; for(let v=1;v<=9;v++) if(isValid(g,r,c,v)) arr.push(v); return arr; }
+
+  function refreshCandidates(){
+    const g=getGrid();
+    for(let i=0;i<81;i++){
+      const {cand,inp} = cells[i]; const spans=cand.querySelectorAll('span'); const v=parseInt(inp.value||0,10);
+      if(v){ spans.forEach(s=>s.classList.add('hidden')); continue; }
+      const r=Math.floor(i/9), c=i%9;
+      const possible = computeCandidatesForCell(g,r,c);
+      spans.forEach(s=>{ const val=parseInt(s.dataset.val,10); if(possible.includes(val)) s.classList.remove('hidden'); else s.classList.add('hidden'); s.classList.remove('active'); });
+    }
+  }
+
+  function computeSolution(){ const g=getGrid(); const copy=g.map(r=>r.slice()); return solveGrid(copy)?copy:null; }
+  function isSolvedAndValid(){ const sol=cachedSolution||computeSolution(); if(!sol) return false; const g=getGrid(); for(let r=0;r<9;r++) for(let c=0;c<9;c++) if(g[r][c]!==sol[r][c]) return false; return true; }
+
+  // -----------------------------
+  // NEW: highlight logic
+  function updateHighlight(){
+    cells.forEach(c=>c.div.classList.remove('highlight'));
+    if(!highlightVal) return;
+    cells.forEach(c=>{ if(parseInt(c.inp.value||0,10)===highlightVal) c.div.classList.add('highlight'); });
+  }
+
+  function clearHighlight(){ highlightVal=null; updateHighlight(); }
+
+  // input handlers
+  cells.forEach(c=>{
+    c.inp.addEventListener('focus',()=>{
+      cells.forEach(x=>x.div.classList.remove('selected'));
+      c.div.classList.add('selected');
+    });
+    c.inp.addEventListener('input',(e)=>{
+      let val=parseInt(e.target.value.replace(/\D/g,''),10)||0;
+      if(val>9) val=9;
+      e.target.value=val||'';
+      refreshCandidates();
+      checkAndMarkConflicts();
+      if(val) highlightVal=val; else clearHighlight();
+      updateHighlight();
+    });
   });
-}
 
-function updateCandidates(){
-  for(let row=0; row<9; row++){
-    for(let col=0; col<9; col++){
-      const cell = container.children[row*9+col];
-      if(board[row][col]!==0) {
-        cell.dataset.value = board[row][col];
-        cell.textContent = board[row][col];
-        cell.classList.add('fixed');
-        if(cell.querySelector('.candidates')) cell.querySelector('.candidates').style.display='none';
-      } else {
-        const candidateDiv = cell.querySelector('.candidates');
-        candidateDiv.style.display='grid';
-        const taken = new Set();
-        for(let i=0;i<9;i++){
-          if(board[row][i]) taken.add(board[row][i]);
-          if(board[i][col]) taken.add(board[i][col]);
-        }
-        const startRow = Math.floor(row/3)*3;
-        const startCol = Math.floor(col/3)*3;
-        for(let r=startRow;r<startRow+3;r++){
-          for(let c=startCol;c<startCol+3;c++){
-            if(board[r][c]) taken.add(board[r][c]);
-          }
-        }
-        candidateDiv.querySelectorAll('span').forEach((s,i)=>{
-          s.textContent = taken.has(i+1) ? '' : i+1;
-        });
-        cell.dataset.value = '';
-        cell.textContent = '';
-      }
-    }
+  // pencil mode click
+  cells.forEach(c=>{
+    const spans = c.cand.querySelectorAll('span');
+    spans.forEach(s=>{
+      s.addEventListener('click',e=>{
+        e.stopPropagation();
+        if(!pencilMode || c.inp.value) return; // only empty cells
+        s.classList.toggle('active');
+      });
+    });
+  });
+
+  // clicking cell selects value for permanent highlight
+  cells.forEach(c=>{
+    c.div.addEventListener('click',()=>{
+      const val=parseInt(c.inp.value||0,10);
+      if(val) highlightVal=val; else clearHighlight();
+      updateHighlight();
+    });
+  });
+
+  // -----------------------------
+  parseBtn.onclick=()=>{
+    const g=parseText(raw.value);
+    if(g){ setGrid(g,true); cachedSolution=computeSolution(); if(timerRunning===false) startTimer(); }
+  };
+  solveBtn.onclick=()=>{ const sol=cachedSolution||computeSolution(); if(sol) setGrid(sol,false); };
+  hintBtn.onclick=()=>{ const g=getGrid(); for(let r=0;r<9;r++) for(let c=0;c<9;c++){ if(g[r][c]===0){ g[r][c]=(cachedSolution||computeSolution())[r][c]; setGrid(g,false); return; } } };
+  checkBtn.onclick=()=>{ checkAndMarkConflicts(); };
+  exportBtn.onclick=()=>{ const g=getGrid(); const txt=g.map(r=>r.map(v=>v||'.').join('')).join('\n'); navigator.clipboard.writeText(txt); alert('Copied to clipboard'); };
+  clearBtn.onclick=()=>{ setGrid(Array.from({length:9},()=>Array(9).fill(0)),false); cachedSolution=null; clearHighlight(); stopTimer(); elapsedMs=0; updateTimerDisplay(); };
+  autoCandsBtn.onclick=()=>{ autoCandidates=!autoCandidates; autoCandsBtn.textContent='Auto Candidates: '+(autoCandidates?'ON':'OFF'); refreshCandidates(); };
+  pencilBtn.onclick=()=>{ pencilMode=!pencilMode; pencilBtn.textContent='Pencil Mode: '+(pencilMode?'ON':'OFF'); board.classList.toggle('pencil-mode',pencilMode); };
+  themeBtn.onclick=()=>{ document.documentElement.dataset.theme = document.documentElement.dataset.theme==='dark'?'light':'dark'; };
+
+  // -----------------------------
+  function updateTimerDisplay(){
+    const s=Math.floor(elapsedMs/1000); const m=Math.floor(s/60); const sec=s%60;
+    timeDisplay.textContent=(m<10?'0':'')+m+':'+(sec<10?'0':'')+sec;
   }
-}
 
-document.addEventListener('keydown', (e) => {
-  if(!selectedCell || selectedCell.classList.contains('fixed')) return;
-  const row = +selectedCell.dataset.row;
-  const col = +selectedCell.dataset.col;
+  function startTimer(){ if(timerRunning) return; timerRunning=true; timerStartTs=Date.now(); timerInterval=setInterval(()=>{ elapsedMs+=Date.now()-timerStartTs; timerStartTs=Date.now(); updateTimerDisplay(); },1000); }
+  function pauseTimer(){ if(!timerRunning) return; timerRunning=false; clearInterval(timerInterval); }
+  function stopTimer(){ timerRunning=false; clearInterval(timerInterval); }
 
-  if(e.key >= '1' && e.key <= '9'){
-    if(pencilMode){
-      const candidateDiv = selectedCell.querySelector('.candidates');
-      const span = candidateDiv.children[+e.key-1];
-      span.textContent = span.textContent === e.key ? '' : e.key;
-    } else {
-      board[row][col] = +e.key;
-      updateCandidates();
-      highlightSameNumbers(e.key);
-    }
-  }
-  if(e.key === 'Backspace' || e.key === 'Delete'){
-    board[row][col] = 0;
-    updateCandidates();
-  }
-});
-
-document.getElementById('pencil-toggle').addEventListener('click', () => {
-  pencilMode = !pencilMode;
-  document.getElementById('pencil-toggle').textContent = `Pencil Mode: ${pencilMode?'ON':'OFF'}`;
-});
-
-document.getElementById('clear-cell').addEventListener('click', () => {
-  if(selectedCell && !selectedCell.classList.contains('fixed')){
-    const row = +selectedCell.dataset.row;
-    const col = +selectedCell.dataset.col;
-    board[row][col] = 0;
-    updateCandidates();
-  }
-});
-
-document.getElementById('reset-board').addEventListener('click', () => {
-  createBoard();
-});
-
-createBoard();
+})();
 </script>
-
 </body>
 </html>
