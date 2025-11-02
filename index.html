@@ -1,175 +1,156 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <title>Sudoku + Photo — Mobile Friendly</title>
 <meta name="theme-color" content="#0b1220"/>
 <style>
   :root{
-    --bg: #f6f8fb;
-    --card: #fff;
-    --muted: #6b7280;
-    --accent: #0b84ff;
-    --cell-border: #d1d5db;
-    --thick: #111827;
-    --match: #fffbcc;
+    --bg: #f6f8fb; --card:#fff; --muted:#6b7280; --accent:#0b84ff;
+    --cell-border:#d1d5db; --thick:#111827; --match:#fffbcc;
   }
-  [data-theme="dark"]{
-    --bg:#07101a; --card:#08121a; --muted:#9aa4b2; --accent:#4aa8ff; --cell-border:#16222b; --thick:#e6eef8; --match:#2b3a2a;
+  [data-theme="dark"]{ --bg:#07101a; --card:#08121a; --muted:#9aa4b2; --accent:#4aa8ff; --cell-border:#16222b; --thick:#e6eef8; --match:#2b3a2a; }
+  html,body{height:100%;margin:0;padding:0;background:linear-gradient(180deg,var(--bg),#e9eef8);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial;color:var(--thick);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  /* container */
+  .wrap{max-width:1100px;margin:10px auto;padding:12px;box-sizing:border-box}
+  .card{background:var(--card);border-radius:12px;padding:12px;box-shadow:0 6px 18px rgba(12,22,39,0.06);border:1px solid rgba(15,23,42,0.04);overflow:hidden}
+  .top{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+  .title{font-size:18px;font-weight:700}
+  .meta{margin-left:auto;color:var(--muted);font-size:13px}
+
+  /* main layout */
+  .main{display:flex;gap:16px;align-items:flex-start;justify-content:center}
+  @media (max-width:720px){ .main{flex-direction:column-reverse;align-items:center} }
+
+  /* board container */
+  .board-wrap{display:flex;align-items:center;justify-content:center;width:100%}
+  .board{width:min(92vw,420px);aspect-ratio:1/1;display:grid;grid-template-columns:repeat(9,1fr);gap:6px;touch-action:manipulation}
+  @media (max-width:420px){ .board{width:calc(100vw - 28px);} }
+
+  .cell{border-radius:8px;background: #fff;border:1px solid var(--cell-border);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;cursor:pointer}
+  .cell input{width:100%;height:100%;border:0;background:transparent;font-size:1.05rem;text-align:center;font-weight:700;outline:none;padding:0;margin:0}
+  .cell.box-right{border-right:3px solid var(--thick)}
+  .cell.box-bottom{border-bottom:3px solid var(--thick)}
+  .cell.match{background:var(--match)}
+  .cell.conflict{outline:3px solid rgba(255,80,80,0.9);box-shadow:0 8px 30px rgba(255,40,40,0.06)}
+
+  .candidates{position:absolute;inset:6px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:0;font-size:10px;color:var(--muted);pointer-events:none;align-items:start}
+  .candidates span{display:flex;align-items:center;justify-content:center;pointer-events:auto;cursor:pointer;transition:color .08s,transform .06s}
+  .candidates span.hidden{display:none}
+  .candidates span.active{color:var(--thick);font-weight:700}
+
+  .photo-panel{width:min(44vw,320px);max-width:360px;border-radius:12px;overflow:hidden;background:linear-gradient(180deg,#fff,#f5f7fb);box-shadow:0 8px 24px rgba(10,20,40,0.06);display:flex;flex-direction:column;gap:8px;align-items:center;padding:12px;box-sizing:border-box;align-self:flex-start}
+  @media (max-width:420px){ .photo-panel{width:calc(100vw - 28px)} }
+
+  .photo-preview{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;background:#e9eef8;display:block}
+  .photo-controls{width:100%;display:flex;gap:8px;align-items:center}
+  .photo-controls button{padding:8px 10px;border-radius:8px;border:0;background:var(--accent);color:white;cursor:pointer}
+  .photo-controls button.ghost{background:transparent;color:var(--muted);border:1px solid var(--cell-border)}
+
+  /* header controls */
+  .controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+  .btn{padding:8px 10px;border-radius:8px;border:0;background:var(--accent);color:white;cursor:pointer}
+  .btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--cell-border)}
+  .timerBox{display:flex;align-items:center;gap:8px;margin-left:auto}
+  .timeDisplay{background:rgba(0,0,0,0.04);padding:6px 10px;border-radius:8px;font-weight:700}
+
+  /* small final row */
+  .bottom-row{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:12px}
+  .bottom-row .btn.ghost{padding:8px 10px}
+
+  /* confetti full-screen canvas */
+  #confettiCanvas{position:fixed;left:0;top:0;pointer-events:none;width:100%;height:100%;z-index:9999}
+
+  /* Chameleon: hidden until celebration */
+  #chameleon{
+    position:fixed;
+    left:50%;
+    top:30%;
+    transform:translate(-50%,-50%) scale(0.8);
+    z-index:10000;
+    pointer-events:none;
+    opacity:0;
+    transition:opacity .25s ease, transform .4s cubic-bezier(.2,.9,.2,1);
+    filter:drop-shadow(0 12px 18px rgba(0,0,0,0.12));
+  }
+  #chameleon.show{opacity:1; transform:translate(-50%,-50%) scale(1); animation:cham-dance 2.8s ease-in-out;}
+  @keyframes cham-dance{
+    0%{ transform:translate(-50%,-50%) rotate(-10deg) translateY(6px); }
+    20%{ transform:translate(-50%,-50%) rotate(6deg) translateY(-6px); }
+    40%{ transform:translate(-50%,-50%) rotate(-6deg) translateY(4px); }
+    60%{ transform:translate(-50%,-50%) rotate(6deg) translateY(-4px); }
+    100%{ transform:translate(-50%,-50%) rotate(0deg) translateY(0); }
   }
 
-  html,body{
-    height:100%; margin:0; background:linear-gradient(180deg,var(--bg),#e9eef8);
-    font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial; -webkit-font-smoothing:antialiased;
-    color:var(--thick);
-    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-  }
-
-  .wrap{ max-width:1100px; margin:12px auto; padding:12px; box-sizing:border-box;}
-  .card{ background:var(--card); border-radius:12px; padding:12px; box-shadow:0 6px 18px rgba(12,22,39,0.06); border:1px solid rgba(15,23,42,0.04); }
-
-  .top-row{ display:flex; gap:12px; align-items:center; margin-bottom:10px; flex-wrap:wrap; }
-  .title{ font-size:18px; font-weight:700; }
-  .meta{ color:var(--muted); font-size:13px; margin-left:auto; }
-
-  /* main layout: board + photo panel */
-  .main {
-    display:flex;
-    gap:16px;
-    align-items:flex-start;
-    justify-content:center;
-  }
-  /* on small screens stack vertically */
-  @media (max-width:720px){
-    .main { flex-direction:column-reverse; align-items:center; padding-bottom:12px; }
-  }
-
-  /* Board container - responsive square for phones */
-  .board-wrap {
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    width:100%;
-  }
-
-  /* Board size: fills small screens neatly while keeping a max for desktop */
-  .board {
-    width: min(92vw, 420px); /* on iPhone 15 this will fit nicely */
-    aspect-ratio: 1 / 1;      /* keep it a perfect square */
-    display: grid;
-    grid-template-columns: repeat(9, 1fr);
-    grid-auto-rows: 1fr;
-    gap:6px;
-    background: transparent;
-    touch-action: manipulation;
-  }
-
-  .cell{
-    border-radius:8px;
-    background: #fff;
-    border:1px solid var(--cell-border);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    position:relative;
-    overflow:hidden;
-    cursor:pointer;
-  }
-  .cell input{
-    width:100%;
-    height:100%;
-    border:0;
-    background:transparent;
-    font-size:1.05rem;
-    text-align:center;
-    font-weight:700;
-    outline:none;
-    padding:0;
-    margin:0;
-  }
-  .cell.box-right{ border-right:3px solid var(--thick); }
-  .cell.box-bottom{ border-bottom:3px solid var(--thick); }
-  .cell.match{ background:var(--match); }
-  .cell.conflict{ outline:3px solid rgba(255,80,80,0.9); }
-
-  /* candidates (small numbers) */
-  .candidates{
-    position:absolute; inset:6px; display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr);
-    gap:0; font-size:10px; color:var(--muted); pointer-events:none; align-items:start;
-  }
-  .candidates span{
-    display:flex; align-items:center; justify-content:center; pointer-events:auto; cursor:pointer; transition: color .08s, transform .06s;
-  }
-  .candidates span.hidden{ display:none; }
-  .candidates span.active{ color:var(--thick); font-weight:700; }
-
-  /* photo panel */
-  .photo-panel{
-    width: min(44vw, 320px); /* on desktop the photo sits to the right; on mobile it's stacked and smaller */
-    max-width:360px;
-    border-radius:12px;
-    overflow:hidden;
-    background:linear-gradient(180deg,#ffffff,#f5f7fb);
-    box-shadow:0 8px 24px rgba(10,20,40,0.06);
-    display:flex;
-    flex-direction:column;
-    gap:8px;
-    align-items:center;
-    padding:12px;
-    box-sizing:border-box;
-  }
-  .photo-preview{
-    width:100%;
-    aspect-ratio: 4 / 3;
-    background: #e9eef8;
-    border-radius:8px;
-    object-fit:cover;
-    display:block;
-  }
-  .photo-controls{ width:100%; display:flex; gap:8px; align-items:center; justify-content:space-between; }
-  .photo-controls button{ padding:8px 10px; border-radius:8px; border:0; cursor:pointer; background:var(--accent); color:white }
-  .photo-controls input[type="file"]{ display:none; }
-
-  /* small utilities */
-  .controls { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0; align-items:center; }
-  .controls .btn{ padding:8px 10px; border-radius:8px; border:0; background:var(--accent); color:white; cursor:pointer; }
-  .controls .btn.ghost{ background:transparent; color:var(--muted); border:1px solid var(--cell-border); box-shadow:none; }
-
-  .timerBox{ display:flex; gap:8px; align-items:center; margin-left:auto; }
-  .timeDisplay{ background:rgba(0,0,0,0.04); padding:6px 10px; border-radius:8px; font-weight:700; }
-
-  /* small screen tweaks to make board flush on tall notched devices */
-  @media (max-width:420px){
-    body{ padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
-    .board { width: calc(100vw - 28px); } /* allow small margins */
-    .photo-panel { width: calc(100vw - 28px); max-width:100%; }
-  }
-
+  /* small adjustments to avoid unexpected big scroll */
+  body,html{min-height:100vh}
+  .wrap{margin-bottom:12px}
 </style>
 </head>
 <body data-theme="light">
 <canvas id="confettiCanvas"></canvas>
 
+<!-- chameleon SVG overlay (hidden until solve) -->
+<div id="chameleon" aria-hidden="true" title="chameleon">
+  <!-- simple stylized green chameleon SVG -->
+  <svg width="160" height="120" viewBox="0 0 160 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="chameleon">
+    <defs>
+      <linearGradient id="g1" x1="0" x2="1">
+        <stop offset="0" stop-color="#7ae582"/><stop offset="1" stop-color="#2fb96d"/>
+      </linearGradient>
+      <filter id="eyes" x="-20%" y="-20%" width="140%" height="140%">
+        <feGaussianBlur in="SourceAlpha" stdDeviation="1" result="b"/>
+        <feOffset dx="0" dy="1" result="o"/>
+        <feBlend in="SourceGraphic" in2="o"/>
+      </filter>
+    </defs>
+    <g transform="translate(10,10)">
+      <!-- body -->
+      <ellipse cx="70" cy="60" rx="48" ry="34" fill="url(#g1)" stroke="#0b6b3f" stroke-width="2"/>
+      <!-- tail -->
+      <path d="M110 70 C126 54, 140 48, 140 34" stroke="#2fb96d" stroke-width="8" fill="none" stroke-linecap="round"/>
+      <!-- head -->
+      <circle cx="40" cy="50" r="18" fill="url(#g1)" stroke="#0b6b3f" stroke-width="2"/>
+      <!-- eye -->
+      <g transform="translate(48,48)">
+        <circle cx="0" cy="0" r="8" fill="#fff"/>
+        <circle cx="0" cy="0" r="4" fill="#123"/>
+      </g>
+      <!-- legs -->
+      <path d="M46 82 l-6 10" stroke="#0b6b3f" stroke-width="4" stroke-linecap="round"/>
+      <path d="M94 82 l6 10" stroke="#0b6b3f" stroke-width="4" stroke-linecap="round"/>
+      <!-- smile -->
+      <path d="M34 58 q8 8 20 3" stroke="#0b6b3f" stroke-width="2" fill="none" stroke-linecap="round"/>
+    </g>
+  </svg>
+</div>
+
 <div class="wrap">
-  <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+  <div class="top">
     <div class="title">Sudoku Player</div>
-    <div class="meta">NYT-style • Pencil mode • Mobile-friendly</div>
+    <div class="meta">NYT-style • Mobile-friendly</div>
   </div>
 
-  <div class="card">
-    <div class="controls">
-      <textarea id="raw" placeholder="Paste .sdk or 9 rows (use '.' for blanks)" style="flex:1;min-height:56px;padding:8px;border-radius:8px;border:1px solid var(--cell-border)"></textarea>
+  <div class="card" role="application" aria-label="Sudoku application">
+    <div class="controls" style="align-items:flex-start">
+      <textarea id="raw" placeholder="Paste .sdk or 9 rows (use '.' for blanks)" style="flex:1;min-height:56px;padding:8px;border-radius:8px;border:1px solid var(--cell-border);"></textarea>
 
-      <div style="display:flex;gap:8px;align-items:center">
+      <div style="display:flex;flex-direction:column;gap:8px;margin-left:8px">
         <button id="parseBtn" class="btn">Load</button>
+        <button id="exportBtn" class="btn ghost">Export</button>
+        <button id="clearBtn" class="btn ghost">Clear</button>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+      <div style="display:flex;gap:8px;align-items:center">
         <button id="hintBtn" class="btn" style="background:linear-gradient(180deg,#ffb86b,#ff8f3b)">Hint</button>
         <button id="solveBtn" class="btn">Solve</button>
         <button id="checkBtn" class="btn ghost">Check</button>
-        <button id="exportBtn" class="btn ghost">Export</button>
       </div>
 
-      <div class="timerBox" style="margin-left:8px;">
+      <div class="timerBox" style="margin-left:auto;align-items:center">
         <div class="timeDisplay" id="timeDisplay">00:00</div>
         <button id="timerStart" class="btn">Start</button>
         <button id="timerPause" class="btn ghost">Pause</button>
@@ -178,7 +159,7 @@
       </div>
     </div>
 
-    <div class="main" style="margin-top:10px;">
+    <div class="main">
       <!-- board -->
       <div class="board-wrap" style="flex:1;display:flex;justify-content:center;">
         <div id="board" class="board" aria-label="sudoku-board"></div>
@@ -186,26 +167,18 @@
 
       <!-- photo panel -->
       <div class="photo-panel" id="photoPanel" aria-hidden="false">
-        <img id="photoPreview" class="photo-preview" src="data:image/svg+xml;utf8,\
-          <svg xmlns='http://www.w3.org/2000/svg' width='800' height='600'>\
-            <rect width='100%' height='100%' fill='%23e6eef7'/>\
-            <text x='50%' y='50%' font-size='30' text-anchor='middle' fill='%239aa4b2' dy='.3em'>Upload your photo</text>\
-          </svg>" alt="photo preview">
-        <div style="width:100%;display:flex;gap:8px;align-items:center;">
-          <label style="flex:1">
-            <input id="photoInput" type="file" accept="image/*" style="display:none">
-            <button id="choosePhoto" class="btn" style="width:100%">Choose image</button>
-          </label>
-          <button id="removePhoto" class="btn ghost" style="min-width:36px">Remove</button>
+        <img id="photoPreview" class="photo-preview" src="" alt="photo preview">
+        <div class="photo-controls">
+          <input id="photoInput" type="file" accept="image/*" style="display:none">
+          <button id="choosePhoto" class="btn" type="button">Choose image</button>
+          <button id="removePhoto" class="btn ghost" type="button">Remove</button>
         </div>
-        <div style="font-size:12px;color:var(--muted);text-align:center;margin-top:6px">Image will appear here. On desktop it sits to the right; on phone below the board.</div>
       </div>
     </div>
 
-    <div style="display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:12px;">
+    <div class="bottom-row">
       <button id="pencilToggle" class="btn ghost">Pencil Mode: OFF</button>
       <button id="autoCands" class="btn ghost">Auto Candidates: ON</button>
-      <button id="clearBtn" class="btn ghost">Clear</button>
       <button id="themeToggle" class="btn ghost">Toggle Dark</button>
     </div>
   </div>
@@ -213,7 +186,7 @@
 
 <script>
 (() => {
-  // Core elements
+  /* --- Elements --- */
   const board = document.getElementById('board');
   const raw = document.getElementById('raw');
   const parseBtn = document.getElementById('parseBtn');
@@ -221,70 +194,62 @@
   const solveBtn = document.getElementById('solveBtn');
   const checkBtn = document.getElementById('checkBtn');
   const exportBtn = document.getElementById('exportBtn');
+  const clearBtn = document.getElementById('clearBtn');
   const pencilToggle = document.getElementById('pencilToggle');
   const autoCandsBtn = document.getElementById('autoCands');
-  const clearBtn = document.getElementById('clearBtn');
+  const themeToggle = document.getElementById('themeToggle');
+
+  const choosePhoto = document.getElementById('choosePhoto');
+  const photoInput = document.getElementById('photoInput');
+  const removePhoto = document.getElementById('removePhoto');
+  const photoPreview = document.getElementById('photoPreview');
+
   const timeDisplay = document.getElementById('timeDisplay');
   const timerStart = document.getElementById('timerStart');
   const timerPause = document.getElementById('timerPause');
   const timerReset = document.getElementById('timerReset');
   const bestTimeLabel = document.getElementById('bestTime');
-  const themeToggle = document.getElementById('themeToggle');
 
-  // photo elements
-  const photoInput = document.getElementById('photoInput');
-  const choosePhoto = document.getElementById('choosePhoto');
-  const removePhoto = document.getElementById('removePhoto');
-  const photoPreview = document.getElementById('photoPreview');
-  const photoPanel = document.getElementById('photoPanel');
-
-  // confetti canvas
   const confettiCanvas = document.getElementById('confettiCanvas');
   const ctx = confettiCanvas.getContext && confettiCanvas.getContext('2d');
-  function resizeCanvas(){ if(confettiCanvas){ confettiCanvas.width = innerWidth; confettiCanvas.height = innerHeight; } }
-  window.addEventListener('resize', resizeCanvas); resizeCanvas();
+  const chameleon = document.getElementById('chameleon');
 
-  // state
+  function resizeCanvas(){ if(confettiCanvas){ confettiCanvas.width = innerWidth; confettiCanvas.height = innerHeight; } }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  /* --- State --- */
   let pencilMode = false;
   let autoCandidates = true;
   let cachedSolution = null;
   let currentlyHighlightedVal = null;
-
   let timerInterval = null, elapsedMs = 0, timerRunning = false, timerStartTs = 0;
   let confettiAnimating = false;
 
-  // build board cells
+  /* --- Build board --- */
   const cells = [];
   for(let r=0;r<9;r++){
     for(let c=0;c<9;c++){
-      const div = document.createElement('div');
-      div.className = 'cell';
+      const div = document.createElement('div'); div.className = 'cell';
       if((c+1)%3===0 && c!==8) div.classList.add('box-right');
       if((r+1)%3===0 && r!==8) div.classList.add('box-bottom');
 
       const inp = document.createElement('input'); inp.type='tel'; inp.maxLength=1; inp.autocomplete='off';
-
       const cand = document.createElement('div'); cand.className='candidates';
       const candidatesSet = new Set();
 
       for(let v=1; v<=9; v++){
-        const s = document.createElement('span');
-        s.textContent = v;
-        s.dataset.val = v;
-        s.className = 'hidden';
-        // candidate click
-        s.addEventListener('click', (ev) => {
+        const s = document.createElement('span'); s.textContent = v; s.dataset.val = v; s.className='hidden';
+        s.addEventListener('click', (ev)=>{
           ev.stopPropagation();
-          const grid = grid2d();
-          const possible = computeCandidatesForCell(grid, r, c);
+          const g = grid2d();
+          const possible = computeCandidatesForCell(g, r, c);
           const val = parseInt(s.dataset.val,10);
           if(pencilMode){
-            if(!possible.includes(val)) return; // only toggle possible ones
-            if(candidatesSet.has(val)){ candidatesSet.delete(val); s.classList.remove('active'); }
-            else { candidatesSet.add(val); s.classList.add('active'); }
+            if(!possible.includes(val)) return; // only toggle if possible
+            if(candidatesSet.has(val)){ candidatesSet.delete(val); s.classList.remove('active'); } else { candidatesSet.add(val); s.classList.add('active'); }
             return;
           } else {
-            // non-pencil: insert big number
             inp.value = String(val);
             candidatesSet.clear();
             refreshAll();
@@ -308,16 +273,15 @@
         if(!timerRunning && elapsedMs===0) startTimer();
         if(isSolvedAndValid()) solvedActions();
       });
-      inp.addEventListener('focus', ()=> { div.classList.add('selected'); const v=parseInt(inp.value||0,10); if(v){ currentlyHighlightedVal=v;highlightMatches(v);} });
-      inp.addEventListener('blur', ()=> { div.classList.remove('selected'); });
 
-      // click on cell toggles permanent highlight
+      inp.addEventListener('focus', ()=>{ div.classList.add('selected'); const v=parseInt(inp.value||0,10); if(v){ currentlyHighlightedVal=v; highlightMatches(v);} });
+      inp.addEventListener('blur', ()=>{ div.classList.remove('selected'); });
+
       div.addEventListener('click', (ev)=>{
         if(ev.target.tagName.toLowerCase() === 'span') return;
         const v = parseInt(inp.value||0,10);
         if(!v) return;
-        if(currentlyHighlightedVal === v){ currentlyHighlightedVal = null; highlightMatches(null); }
-        else { currentlyHighlightedVal = v; highlightMatches(v); }
+        if(currentlyHighlightedVal === v){ currentlyHighlightedVal = null; highlightMatches(null); } else { currentlyHighlightedVal = v; highlightMatches(v); }
       });
 
       div.appendChild(inp); div.appendChild(cand);
@@ -326,44 +290,42 @@
     }
   }
 
-  // grid helpers
+  /* --- Grid helpers --- */
   function grid2d(){
     const g = Array.from({length:9}, ()=>Array(9).fill(0));
-    for(const cell of cells){ g[cell.r][cell.c] = parseInt(cell.inp.value||0,10); }
+    for(const cell of cells) g[cell.r][cell.c] = parseInt(cell.inp.value||0,10);
     return g;
   }
 
-  // validation & solver
+  /* --- Validation & solver --- */
   function isValid(g,r,c,val){
     for(let i=0;i<9;i++){ if(g[r][i]===val) return false; if(g[i][c]===val) return false; }
-    const br = Math.floor(r/3)*3, bc = Math.floor(c/3)*3;
+    const br=Math.floor(r/3)*3, bc=Math.floor(c/3)*3;
     for(let i=0;i<3;i++) for(let j=0;j<3;j++) if(g[br+i][bc+j]===val) return false;
     return true;
   }
   function computeCandidatesForCell(g,r,c){
     if(g[r][c] !== 0) return [];
-    const arr = [];
-    for(let v=1; v<=9; v++) if(isValid(g,r,c,v)) arr.push(v);
-    return arr;
+    const arr=[]; for(let v=1;v<=9;v++) if(isValid(g,r,c,v)) arr.push(v); return arr;
   }
   function findEmpty(g){ for(let r=0;r<9;r++) for(let c=0;c<9;c++) if(g[r][c]===0) return [r,c]; return null; }
   function solveGrid(g){ const e=findEmpty(g); if(!e) return true; const [r,c]=e; for(let v=1;v<=9;v++){ if(isValid(g,r,c,v)){ g[r][c]=v; if(solveGrid(g)) return true; g[r][c]=0; } } return false; }
-  function computeSolution(){ const g = grid2d().map(r=>r.slice()); if(!solveGrid(g)) return null; return g; }
+  function computeSolution(){ const g=grid2d().map(r=>r.slice()); if(!solveGrid(g)) return null; return g; }
 
-  // conflicts
+  /* --- Conflicts --- */
   function checkConflicts(){
-    const g = grid2d(); let ok = true;
+    const g=grid2d(); let ok=true;
     cells.forEach(c=>c.div.classList.remove('conflict'));
     for(let r=0;r<9;r++) for(let c=0;c<9;c++){
-      const v = g[r][c]; if(!v) continue;
-      g[r][c] = 0;
+      const v=g[r][c]; if(!v) continue;
+      g[r][c]=0;
       if(!isValid(g,r,c,v)){ cells[r*9+c].div.classList.add('conflict'); ok=false; }
       g[r][c]=v;
     }
     return ok;
   }
 
-  // candidates display - only show valid candidates; pencil notes allowed for possible ones
+  /* --- Candidates display & pencil notes (only show possible candidates) --- */
   function refreshCandidatesForCell(cell){
     const spans = Array.from(cell.cand.querySelectorAll('span'));
     const g = grid2d();
@@ -373,26 +335,24 @@
     if(cell.candidatesSet.size > 0){
       spans.forEach(s=>{
         const v = parseInt(s.dataset.val,10);
-        if(cell.candidatesSet.has(v) && possible.includes(v)){
-          s.classList.remove('hidden'); s.classList.add('active'); s.style.opacity='1';
-        } else { s.classList.add('hidden'); s.classList.remove('active'); }
+        if(cell.candidatesSet.has(v) && possible.includes(v)){ s.classList.remove('hidden'); s.classList.add('active'); s.style.opacity='1'; }
+        else { s.classList.add('hidden'); s.classList.remove('active'); }
       });
       return;
     }
     if(autoCandidates || pencilMode){
       spans.forEach(s=>{
-        const v = parseInt(s.dataset.val,10);
+        const v=parseInt(s.dataset.val,10);
         if(possible.includes(v)){ s.classList.remove('hidden'); s.classList.remove('active'); s.style.opacity='1'; }
         else { s.classList.add('hidden'); s.classList.remove('active'); }
       });
     } else {
-      spans.forEach(s=> { s.classList.add('hidden'); s.classList.remove('active'); });
+      spans.forEach(s=>{ s.classList.add('hidden'); s.classList.remove('active'); });
     }
   }
-
   function refreshAll(){ cells.forEach(c=>refreshCandidatesForCell(c)); checkConflicts(); }
 
-  // highlighting permanent
+  /* --- Highlighting (permanent until toggled) --- */
   function highlightMatches(val){
     currentlyHighlightedVal = val;
     cells.forEach(c=> c.div.classList.remove('match'));
@@ -401,50 +361,41 @@
     for(const c of cells){
       if(String(c.inp.value) === String(val)) c.div.classList.add('match');
       if(pencilMode){
-        c.cand.querySelectorAll('span').forEach(s=>{ if(parseInt(s.dataset.val,10) === val && !s.classList.contains('hidden')) s.classList.add('active'); });
+        c.cand.querySelectorAll('span').forEach(s=>{ if(parseInt(s.dataset.val,10)===val && !s.classList.contains('hidden')) s.classList.add('active'); });
       }
     }
   }
 
-  // solved check + actions
-  function isSolvedAndValid(){
-    const sol = cachedSolution || computeSolution();
-    if(!sol) return false;
-    const g = grid2d();
-    for(let r=0;r<9;r++) for(let c=0;c<9;c++) if(g[r][c] !== sol[r][c]) return false;
-    return true;
-  }
+  /* --- Solved check & actions --- */
+  function isSolvedAndValid(){ const sol = cachedSolution || computeSolution(); if(!sol) return false; const g=grid2d(); for(let r=0;r<9;r++) for(let c=0;c<9;c++) if(g[r][c] !== sol[r][c]) return false; return true; }
 
   function solvedActions(){
-    pauseTimer();
-    launchConfetti();
-    const key = getPuzzleKey();
-    const prev = localStorage.getItem(key);
-    const timeMs = elapsedMs;
-    let bestChanged = false;
-    if(!prev || timeMs < parseInt(prev,10)){ localStorage.setItem(key, String(timeMs)); bestChanged=true; }
-    updateBest();
-    setTimeout(()=> alert('Puzzle complete! Time: ' + formatTime(timeMs) + (bestChanged ? ' — NEW BEST!' : '')), 200);
+    pauseTimer(); launchConfetti(); showChameleon();
+    const key = getPuzzleKey(); const prev = localStorage.getItem(key); const timeMs = elapsedMs;
+    let bestChanged=false; if(!prev || timeMs < parseInt(prev,10)){ localStorage.setItem(key,String(timeMs)); bestChanged=true; }
+    updateBest(); setTimeout(()=> alert('Puzzle complete! Time: ' + formatTime(timeMs) + (bestChanged ? ' — NEW BEST!' : '')), 250);
   }
 
-  function getPuzzleKey(){ try{ return 'sudoku_best_'+btoa(raw.value||''); } catch { return 'sudoku_best_default'; } }
+  function getPuzzleKey(){ try{return 'sudoku_best_'+btoa(raw.value||''); }catch(e){ return 'sudoku_best_default'; } }
   function updateBest(){ const t = localStorage.getItem(getPuzzleKey()); bestTimeLabel.textContent = t ? 'Best: ' + formatTime(parseInt(t,10)) : 'Best: —'; }
 
-  // timer
+  /* --- Timer --- */
   function formatTime(ms){ const s=Math.floor(ms/1000); return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0'); }
   function updateDisplay(){ timeDisplay.textContent = formatTime(elapsedMs); }
   function startTimer(){ if(timerRunning) return; timerRunning=true; timerStartTs = Date.now() - elapsedMs; timerInterval = setInterval(()=>{ elapsedMs = Date.now() - timerStartTs; updateDisplay(); }, 250); }
   function pauseTimer(){ if(!timerRunning) return; timerRunning=false; clearInterval(timerInterval); }
   function resetTimer(){ pauseTimer(); elapsedMs = 0; updateDisplay(); }
 
-  // confetti
+  timerStart.addEventListener('click', startTimer); timerPause.addEventListener('click', pauseTimer); timerReset.addEventListener('click', ()=>{ resetTimer(); updateDisplay(); });
+
+  /* --- Confetti --- */
   function random(min,max){ return Math.random()*(max-min)+min; }
   function launchConfetti(){
     if(!ctx || confettiAnimating) return;
     confettiAnimating = true;
     const w = confettiCanvas.width, h = confettiCanvas.height;
     const colors = ['#FF6B6B','#FFD93D','#6BCB77','#4D96FF','#C084FC'];
-    const count = Math.min(140, Math.floor((w*h)/24000));
+    const count = Math.min(160, Math.floor((w*h)/24000));
     let parts = [];
     for(let i=0;i<count;i++){
       parts.push({ x: random(0,w), y: random(-h*0.6,0), vx: random(-2,2), vy: random(2,6), size: random(6,12), rot: random(0,360), color: colors[Math.floor(Math.random()*colors.length)], life: random(70,160) });
@@ -461,34 +412,29 @@
     step();
   }
 
-  // actions: parse, export, solve, hint, check, clear, toggles
+  /* --- Chameleon (show/hide) --- */
+  function showChameleon(){
+    chameleon.classList.add('show');
+    setTimeout(()=> chameleon.classList.remove('show'), 3800); // show for ~3.8s
+  }
+
+  /* --- UI: parse, export, solve, hint, check, clear, toggles --- */
   parseBtn.addEventListener('click', ()=>{
     const lines = raw.value.split(/\r?\n/).map(s=>s.trim()).filter(s=>s && !s.startsWith('#'));
-    if(lines.length < 9) return alert('Paste 9 rows or full .sdk content.');
-    const grid = lines.slice(0,9).map(row=>{
-      const r = row.replace(/[^0-9.]/g,'.').padEnd(9,'.').slice(0,9);
-      return Array.from(r).map(ch => ch === '.' ? 0 : parseInt(ch,10));
-    });
-    cells.forEach(c => c.candidatesSet.clear());
+    if(lines.length < 9) return alert('Paste 9 rows (use . for blanks) or full .sdk.');
+    const grid = lines.slice(0,9).map(row=>{ const r = row.replace(/[^0-9.]/g,'.').padEnd(9,'.').slice(0,9); return Array.from(r).map(ch => ch=='.'?0:parseInt(ch,10)); });
+    cells.forEach(c=> c.candidatesSet.clear());
     cachedSolution = null;
-    for(let r=0;r<9;r++) for(let c=0;c<9;c++){
-      const v = grid[r][c] || ''; const idx = r*9 + c;
-      cells[idx].inp.value = v ? String(v) : '';
-      cells[idx].div.classList.toggle('clue', !!v);
-      cells[idx].inp.readOnly = !!v;
-    }
+    for(let r=0;r<9;r++) for(let c=0;c<9;c++){ const idx=r*9+c; const v = grid[r][c] || ''; cells[idx].inp.value = v ? String(v) : ''; cells[idx].div.classList.toggle('clue', !!v); cells[idx].inp.readOnly = !!v; }
     refreshAll(); resetTimer(); startTimer(); updateBest();
   });
 
-  exportBtn.addEventListener('click', ()=>{
-    const g = grid2d(); const text = g.map(r=>r.map(v=>v||'.').join('')).join('\n');
-    if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(()=>alert('Copied to clipboard')); else prompt('Copy puzzle:', text);
-  });
+  exportBtn.addEventListener('click', ()=>{ const g=grid2d(); const text = g.map(r=>r.map(v=>v||'.').join('')).join('\n'); if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(()=>alert('Copied to clipboard')); else prompt('Copy puzzle:', text); });
 
   solveBtn.addEventListener('click', ()=>{
     const sol = cachedSolution || computeSolution();
     if(!sol) return alert('No solution found');
-    for(let r=0;r<9;r++) for(let c=0;c<9;c++){ const idx=r*9+c; cells[idx].inp.value = String(sol[r][c]); cells[idx].div.classList.remove('clue'); cells[idx].candidatesSet.clear(); cells[idx].inp.readOnly=false; }
+    for(let r=0;r<9;r++) for(let c=0;c<9;c++){ const idx=r*9+c; cells[idx].inp.value = String(sol[r][c]); cells[idx].div.classList.remove('clue'); cells[idx].candidatesSet.clear(); cells[idx].inp.readOnly = false; }
     cachedSolution = sol; refreshAll(); solvedActions();
   });
 
@@ -502,70 +448,47 @@
     alert('No empty cells');
   });
 
-  checkBtn.addEventListener('click', ()=>{ const ok = checkConflicts(); alert(ok ? 'No conflicts' : 'Conflicts highlighted'); });
+  checkBtn.addEventListener('click', ()=> { const ok = checkConflicts(); alert(ok ? 'No conflicts found.' : 'Conflicts highlighted.'); });
 
-  clearBtn.addEventListener('click', ()=>{ cells.forEach(c=>{ c.inp.value = ''; c.div.classList.remove('clue','conflict','match'); c.candidatesSet.clear(); c.inp.readOnly = false; }); cachedSolution=null; currentlyHighlightedVal=null; refreshAll(); resetTimer(); updateBest(); });
+  clearBtn.addEventListener('click', ()=>{ cells.forEach(c=>{ c.inp.value=''; c.div.classList.remove('clue','conflict','match'); c.candidatesSet.clear(); c.inp.readOnly=false; }); cachedSolution=null; currentlyHighlightedVal=null; refreshAll(); resetTimer(); updateBest(); });
 
   pencilToggle.addEventListener('click', ()=>{ pencilMode = !pencilMode; pencilToggle.textContent = 'Pencil Mode: ' + (pencilMode ? 'ON' : 'OFF'); cells.forEach(c=> c.div.classList.toggle('pencil-mode', pencilMode)); refreshAll(); });
   autoCandsBtn.addEventListener('click', ()=>{ autoCandidates = !autoCandidates; autoCandsBtn.textContent = 'Auto Candidates: ' + (autoCandidates ? 'ON' : 'OFF'); refreshAll(); });
-  timerStart.addEventListener('click', startTimer); timerPause.addEventListener('click', pauseTimer); timerReset.addEventListener('click', ()=>{ resetTimer(); updateDisplay(); });
-
   themeToggle.addEventListener('click', ()=>{ const cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'; document.documentElement.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark'); });
 
-  // photo upload handlers
+  /* --- Photo upload persistence --- */
+  const PHOTO_KEY = 'sudoku_photo_dataurl';
+  // restore photo from localStorage (if any)
+  const saved = localStorage.getItem(PHOTO_KEY);
+  if(saved){ photoPreview.src = saved; } else {
+    // default placeholder SVG as data URL
+    photoPreview.src = "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><rect width="100%" height="100%" fill="%23e6eef7"/><text x="50%" y="50%" font-size="30" text-anchor="middle" fill="%239aa4b2" dy=".3em">Choose a photo</text></svg>');
+  }
+
   choosePhoto.addEventListener('click', ()=> photoInput.click());
   photoInput.addEventListener('change', (ev)=>{
-    const file = ev.target.files && ev.target.files[0];
-    if(!file) return;
+    const file = ev.target.files && ev.target.files[0]; if(!file) return;
     const reader = new FileReader();
-    reader.onload = (e) => { photoPreview.src = e.target.result; };
+    reader.onload = (e)=>{ photoPreview.src = e.target.result; try{ localStorage.setItem(PHOTO_KEY, e.target.result); } catch(err){ console.warn('Could not save photo to localStorage (size?).'); } };
     reader.readAsDataURL(file);
   });
+
   removePhoto.addEventListener('click', ()=>{
-    photoPreview.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='600'><rect width='100%' height='100%' fill='%23e6eef7'/><text x='50%' y='50%' font-size='30' text-anchor='middle' fill='%239aa4b2' dy='.3em'>Upload your photo</text></svg>";
+    localStorage.removeItem(PHOTO_KEY);
+    photoPreview.src = "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><rect width="100%" height="100%" fill="%23e6eef7"/><text x="50%" y="50%" font-size="30" text-anchor="middle" fill="%239aa4b2" dy=".3em">Choose a photo</text></svg>');
   });
 
   // drag & drop onto photo panel
-  photoPanel.addEventListener('dragover', (e)=>{ e.preventDefault(); photoPanel.style.opacity=0.9; });
+  const photoPanel = document.getElementById('photoPanel');
+  photoPanel.addEventListener('dragover', (e)=>{ e.preventDefault(); photoPanel.style.opacity=0.95; });
   photoPanel.addEventListener('dragleave', ()=>{ photoPanel.style.opacity=1; });
-  photoPanel.addEventListener('drop', (e)=>{ e.preventDefault(); photoPanel.style.opacity=1; const f = e.dataTransfer.files && e.dataTransfer.files[0]; if(!f) return; const rdr=new FileReader(); rdr.onload=(ev)=>{ photoPreview.src=ev.target.result; }; rdr.readAsDataURL(f); });
+  photoPanel.addEventListener('drop', (e)=>{ e.preventDefault(); photoPanel.style.opacity=1; const f = e.dataTransfer.files && e.dataTransfer.files[0]; if(!f) return; const rdr=new FileReader(); rdr.onload=(ev)=>{ photoPreview.src=ev.target.result; try{ localStorage.setItem(PHOTO_KEY, ev.target.result); }catch{} }; rdr.readAsDataURL(f); });
 
-  // initial render
+  /* --- Final init --- */
+  cells.forEach(c => { if(!c.candidatesSet) c.candidatesSet = new Set(); });
   refreshAll(); updateBest();
 
-  // helper definitions used above but hoisted to keep code tidy
-  function refreshCandidatesForCell(cell){
-    // preserved earlier logic (keeps pencil notes, shows only possible candidates)
-    const spans = Array.from(cell.cand.querySelectorAll('span'));
-    const g = grid2d();
-    const val = parseInt(cell.inp.value||0,10);
-    if(val){ spans.forEach(s=> { s.classList.add('hidden'); s.classList.remove('active'); }); return; }
-    const possible = computeCandidatesForCell(g, cell.r, cell.c);
-    if(cell.candidatesSet.size > 0){
-      spans.forEach(s=>{
-        const v = parseInt(s.dataset.val,10);
-        if(cell.candidatesSet.has(v) && possible.includes(v)){ s.classList.remove('hidden'); s.classList.add('active'); s.style.opacity='1'; }
-        else { s.classList.add('hidden'); s.classList.remove('active'); }
-      });
-      return;
-    }
-    if(autoCandidates || pencilMode){
-      spans.forEach(s=>{
-        const v = parseInt(s.dataset.val,10);
-        if(possible.includes(v)){ s.classList.remove('hidden'); s.classList.remove('active'); s.style.opacity='1'; }
-        else { s.classList.add('hidden'); s.classList.remove('active'); }
-      });
-    } else {
-      spans.forEach(s=> { s.classList.add('hidden'); s.classList.remove('active'); });
-    }
-  }
-
-  function refreshAll(){
-    for(const cell of cells) refreshCandidatesForCell(cell);
-    checkConflicts();
-  }
-
-  // expose a couple helpers to console for debugging if needed
+  // Expose tiny debug helpers
   window.__sudoku_refresh = refreshAll;
   window.__sudoku_getGrid = grid2d;
 
